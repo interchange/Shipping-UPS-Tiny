@@ -30,4 +30,37 @@ is($ups->endpoint, "https://wwwcie.ups.com/webservices/Ship",
 
 ok($ups->soap, "SOAP client exists");
 
+$ups->from({
+            %{ $conf->{from} }
+           });
+
+ok($ups->from_address);
+print Dumper $ups->from_address;
+
+$ups->to({
+          %{ $conf->{to} }
+         });
+
+ok($ups->to_address);
+print Dumper $ups->to_address;
+
+
+
+$ups->set_package({
+                   description => "Test package",
+                   length => 1,
+                   width => 2,
+                   height => 3,
+                   weight => 0.2,
+                  });
+
+ok($ups->package_props);
+
+print Dumper($ups->package_props);
+
+
+
+
+
+
 done_testing;

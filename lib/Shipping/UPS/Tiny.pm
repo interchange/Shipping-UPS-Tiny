@@ -8,7 +8,8 @@ use Moo;
 use XML::Compile::WSDL11;
 use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
-
+use Shipping::UPS::Tiny::Address;
+use Shipping::UPS::Tiny::Package;
 
 =head1 NAME
 
@@ -64,24 +65,17 @@ the UPS Account shown in the request confirmation
 =cut
 
 has 'account_key' => (is => 'ro',
-                      isa => sub {
-                          die "Missing account_key" unless $_[0];
-                      });
+                      required => 1);
+                  
 
 has 'username' => (is => 'ro',
-                   isa => sub {
-                       die "Missing user_id" unless $_[0];
-                   });
+                   required => 1);
 
 has 'ups_account' => (is => 'ro',
-                     isa => sub {
-                         die "Missing shipper_id" unless $_[0];
-                     });
+                      required => 1);
 
 has 'password' => (is => 'ro',
-                   isa => sub {
-                       die "Missing password" unless $_[0];
-                   });
+                   required => 1);
 
 
 =head2 SOAP schemas and endpoint
@@ -107,8 +101,6 @@ If I read correctly, the definitions are in
 
 Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs
 
-=back
-
 =cut
 
 
@@ -125,10 +117,100 @@ has 'wsdlfile' => (is => 'ro',
 
 has 'schema_dir' => (is => 'ro',
                      isa => sub {
-                         die "schema_dir is not a directory"
+                         die "schema_dir $_[0] is not a directory"
                            unless -d $_[0];
                      });
 
+=item shipper
+
+The shipper. If not present, the details from C<from_address> are
+used.
+
+=item from_address
+
+The origin address (read only, set by the method C<from>)
+
+=item to_address
+
+The destination  (read only, set by the method C<to>)
+
+=back
+
+=cut
+
+has from_address => (is => 'rwp');
+
+has to_address => (is => 'rwp');
+
+has shipper => (is => 'rwp');
+
+=head1 METHODS
+
+=head2 Addresses
+
+The following methods set the origin and the destination of the
+package. They accept an hashref as argument, using the keys described in
+L<UPS::Shipment::Tiny::Address>
+
+=over 4
+
+=item from
+
+=item to
+
+=back
+
+=head2 Package
+
+=over 4
+
+=item set_package(\%hash)
+
+See L<UPS::Shipment::Tiny::Package> for the recognized keys.
+
+Pass
+
+=item package_props
+
+Accessor to the package hashref.
+
+=back
+
+=cut
+
+
+sub from {
+    my ($self, $args) = @_;
+    # all is supposed to die here if the args are not validated.
+    # eventually, wrap this in eval
+    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
+    $self->_set_from_address($addr->as_hash);
+};
+
+sub to {
+    my ($self, $args) = @_;
+    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
+    $self->_set_to_address($addr->as_hash);
+};
+
+sub shipper {
+    my ($self, $args) = @_;
+    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
+    $self->_set_shipper_address($addr->as_hash);
+}
+
+has package_props => (is => 'rwp');
+
+sub set_package {
+    my ($self, $args) = @_;
+    my $pkg = Shipping::UPS::Tiny::Package->new(%$args);
+    $self->_set_package_props($pkg->as_hash);
+}
+
+
+=head2 INTERNALS
+
+=over 4
 
 =item  soap
 
@@ -152,7 +234,7 @@ sub soap {
 }
 
 
-
+=back
 
 =head1 AUTHOR
 
