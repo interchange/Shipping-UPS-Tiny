@@ -208,6 +208,109 @@ sub set_package {
 }
 
 
+=head2 
+
+=over 4 
+
+=item ship("Description");
+
+Ship the package with UPS and return a
+L<Shipping::UPS::Tiny::Package::Response> object.
+
+=back
+
+=cut
+
+sub ship {
+    my ($self, $desc) = @_;
+    if (defined $desc) {
+        $self->_description($desc)
+    };
+    my $request = $self->_build_hash;
+    my ($response, $trace) = $self->soap->($request, 'UTF-8');
+    return $response, $trace;
+}
+
+has _description => (is => 'rw',
+                     default => sub { return "" });
+
+sub _build_hash {
+    my $self = shift;
+    my $req = {
+               UPSSecurity => 
+               {
+                UsernameToken =>
+                {
+                 Username => $self->username,
+                 Password => $self->password,
+                },
+                ServiceAccessToken =>
+                {
+                 AccessLicenseNumber => $self->account_key,
+                },
+               },
+               Request =>
+               {
+                RequestOption => 'nonvalidate',
+               },
+               Shipment =>
+               {
+                Description => $self->_description,
+                Shipper => $self->shipper || { %{ $self->from_address} },
+                ShipTo => $self->to_address,
+                ShipFrom => $self->from_address,
+                Service => {
+                            Code => '07',
+                            Description => 'Express',
+                           },
+                Package => $self->package_props,
+                PaymentInformation => $self->payment_info,
+               },
+               LabelSpecification =>
+               {
+                LabelImageFormat =>
+                {
+                 Code => 'GIF',
+                 Description => 'GIF'
+                },
+                HTTPUserAgent => 'Mozilla/4.5'
+               }
+              };
+    # add the shipper number
+    $req->{Shipment}->{Shipper}->{ShipperNumber} = $self->ups_account;
+    return $req;
+}
+
+# use bogus values for now, ok?
+sub payment_info {
+    my $self = shift;
+    return {
+            ShipmentCharge =>
+            {
+             Type => '01',
+             BillShipper =>
+             {
+              CreditCard =>
+              {
+               Type => '06',
+               Number => '4111111111111111',
+               SecurityCode => '123',
+               ExpirationDate => '12/2010',
+               Address =>
+               {
+                AddressLine => '2010 warsaw road',
+                City => 'Roswell',
+                StateProvinceCode => 'GA',
+                PostalCode => '30076',
+                CountryCode => 'US'
+               },
+              },
+             },
+            },
+           };
+}
+
+
 =head2 INTERNALS
 
 =over 4
