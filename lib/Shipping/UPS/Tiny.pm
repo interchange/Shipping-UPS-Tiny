@@ -130,6 +130,29 @@ has 'schema_dir' => (is => 'ro',
                      });
 
 
+=item  soap
+
+The XML::Compile::SOAP client (internal)
+
+=cut
+
+has '_soap_obj' => (is => 'rwp');
+
+sub soap {
+    my $self = shift;
+    unless ($self->_soap_obj) {
+        my $wsdl = XML::Compile::WSDL11->new($self->wsdlfile);
+        my @schemas = 
+        $wsdl->importDefinitions([ glob $self->schema_dir . "/*.xsd" ]);
+        my $operation = $wsdl->operation('ProcessShipment');
+        my $client = $operation->compileClient(endpoint => $self->endpoint);
+        $self->_set__soap_obj($client);
+    }
+    return $self->_soap_obj;
+}
+
+
+
 
 =head1 AUTHOR
 
