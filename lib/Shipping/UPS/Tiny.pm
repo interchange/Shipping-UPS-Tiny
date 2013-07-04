@@ -4,6 +4,12 @@ use 5.010001;
 use strict;
 use warnings FATAL => 'all';
 
+use Moo;
+use XML::Compile::WSDL11;
+use XML::Compile::SOAP11;
+use XML::Compile::Transport::SOAPHTTP;
+
+
 =head1 NAME
 
 Shipping::UPS::Tiny - The great new Shipping::UPS::Tiny!
@@ -33,21 +39,97 @@ Perhaps a little code snippet.
 A list of functions that can be exported.  You can delete this section
 if you don't export anything, such as for a purely object-oriented module.
 
-=head1 SUBROUTINES/METHODS
+=head1 ACCESSORS
 
-=head2 function1
+=head2 Credentials
+
+=over 4
+
+=item account_key
+
+The kye provided by UPS
+
+=item username
+
+The username
+
+=item ups_account 
+
+the UPS Account shown in the request confirmation
+
+=item password
+
+=back
 
 =cut
 
-sub function1 {
-}
+has 'account_key' => (is => 'ro',
+                      isa => sub {
+                          die "Missing account_key" unless $_[0];
+                      });
 
-=head2 function2
+has 'username' => (is => 'ro',
+                   isa => sub {
+                       die "Missing user_id" unless $_[0];
+                   });
+
+has 'ups_account' => (is => 'ro',
+                     isa => sub {
+                         die "Missing shipper_id" unless $_[0];
+                     });
+
+has 'password' => (is => 'ro',
+                   isa => sub {
+                       die "Missing password" unless $_[0];
+                   });
+
+
+=head2 SOAP schemas and endpoint
+
+=over 4
+
+=item endpoint
+
+It defaults to the development server,
+L<https://wwwcie.ups.com/webservices/Ship>. When ready for production,
+switch it to L<https://onlinetools.ups.com/webservices/Ship>
+
+=item wsdlfile
+
+You need to fetch the API documentation from UPS, in the Shipping.zip
+package the wdsl is located at:
+
+Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs/Ship.wsdl
+
+=item schema_dir
+
+If I read correctly, the definitions are in 
+
+Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs
+
+=back
 
 =cut
 
-sub function2 {
-}
+
+has 'endpoint' => (is => 'ro',
+                   default => sub {
+                       return 'https://wwwcie.ups.com/webservices/Ship';
+                   });
+
+has 'wsdlfile' => (is => 'ro',
+                   isa => sub {
+                       die "WDSL $_[0] is not a file"
+                         unless -f $_[0];
+                   });
+
+has 'schema_dir' => (is => 'ro',
+                     isa => sub {
+                         die "schema_dir is not a directory"
+                           unless -d $_[0];
+                     });
+
+
 
 =head1 AUTHOR
 
