@@ -58,6 +58,19 @@ $ups->set_package({
                    weight => 0.2,
                   });
 
+is_deeply($ups->service, {
+                          Code => '11',
+                          Description => 'UPS Standard',
+                         }, "service hash ok");
+
+$ups->service('07');
+
+is_deeply($ups->service, {
+                          Code => '07',
+                          Description => 'Express',
+                         }, "service changed ok");
+
+
 ok($ups->package_props);
 
 print Dumper($ups->package_props);

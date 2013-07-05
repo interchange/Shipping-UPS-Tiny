@@ -10,6 +10,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 use Shipping::UPS::Tiny::Address;
 use Shipping::UPS::Tiny::Package;
+use Shipping::UPS::Tiny::Service;
 
 =head1 NAME
 
@@ -229,6 +230,20 @@ sub set_package {
     $self->_set_package_props($pkg->as_hash);
 }
 
+has _service_hash => (is => 'rw',
+                      default => sub {
+                          return Shipping::UPS::Tiny::Service->new->as_hash;
+                      });
+
+sub service {
+    my ($self, $code) = @_;
+    if ($code) {
+        $self->_service_hash(Shipping::UPS::Tiny::Service->new(service_code => $code)->as_hash);
+    }
+    return $self->_service_hash
+}
+
+
 
 =head2 
 
@@ -281,10 +296,7 @@ sub _build_hash {
                 Shipper => $self->shipper_address,
                 ShipTo => $self->to_address,
                 ShipFrom => $self->from_address,
-                Service => {
-                            Code => '07',
-                            Description => 'Express',
-                           },
+                Service => $self->service,
                 Package => $self->package_props,
                 PaymentInformation => $self->payment_info,
                },
