@@ -12,6 +12,7 @@ use Shipping::UPS::Tiny::Address;
 use Shipping::UPS::Tiny::CC;
 use Shipping::UPS::Tiny::Package;
 use Shipping::UPS::Tiny::Service;
+use Shipping::UPS::Tiny::ShipmentResponse;
 
 use Moo;
 
@@ -325,7 +326,7 @@ sub ship {
 
     $self->_set_debug_trace($trace);
     $self->_set_debug_hash_response($response);
-    return $response;
+    return Shipping::UPS::Tiny::ShipmentResponse->new(raw_response => $response);
 }
 
 has _description => (is => 'rw',
