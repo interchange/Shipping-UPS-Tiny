@@ -4,13 +4,18 @@ use 5.010001;
 use strict;
 use warnings FATAL => 'all';
 
-use Moo;
 use XML::Compile::WSDL11;
 use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
+
 use Shipping::UPS::Tiny::Address;
+use Shipping::UPS::Tiny::CC;
 use Shipping::UPS::Tiny::Package;
 use Shipping::UPS::Tiny::Service;
+
+use Moo;
+
+
 
 =head1 NAME
 
@@ -184,8 +189,6 @@ Pass
 
 Accessor to the package hashref.
 
-=back
-
 =cut
 
 
@@ -235,6 +238,14 @@ has _service_hash => (is => 'rw',
                           return Shipping::UPS::Tiny::Service->new->as_hash;
                       });
 
+=item service
+
+Select the service to use. The code is passed to a
+L<Shipping::UPS::Service> object. See its documentation for the
+available options.
+
+=cut
+
 sub service {
     my ($self, $code) = @_;
     if ($code) {
@@ -244,6 +255,27 @@ sub service {
 }
 
 
+=item credit_card_info(\%cc_info);
+
+By default, this module use the account number as preferred method to
+pay the UPS bill, to avoid sending each time the CC informations and
+to store them somewhere.
+
+If an hashref is passed to this setter, and passes the validation, the
+credit card payment is used.
+
+The hashref passed is passed to L<Shipping::UPS::Tiny::CC>, where the
+validation happens.
+
+=back
+
+=cut
+
+has credit_card_info => (is => 'rw',
+                         isa => sub {
+                             die "credit_card_info requires an hashref"
+                               unless ref($_[0]) eq 'HASH';
+                         });
 
 =head2 
 
@@ -253,8 +285,6 @@ sub service {
 
 Ship the package with UPS and return a
 L<Shipping::UPS::Tiny::Package::Response> object.
-
-=back
 
 =cut
 
@@ -313,33 +343,34 @@ sub _build_hash {
     return $req;
 }
 
-# use bogus values for now, ok?
+
+=item payment_info
+
+Internal method to build the billing information. It will use the CC
+if C<credit_card_info> is set.
+
+=back
+
+
+=cut
+
 sub payment_info {
     my $self = shift;
-    return {
-            ShipmentCharge =>
-            {
-             Type => '01',
-             BillShipper =>
-             {
-              CreditCard =>
-              {
-               Type => '06',
-               Number => '4111111111111111',
-               SecurityCode => '123',
-               ExpirationDate => '12/2010',
-               Address =>
-               {
-                AddressLine => '2010 warsaw road',
-                City => 'Roswell',
-                StateProvinceCode => 'GA',
-                PostalCode => '30076',
-                CountryCode => 'US'
-               },
-              },
-             },
-            },
-           };
+    my $hash = {
+                ShipmentCharge => {
+                                   Type => '01', # transportation
+                                   BillShipper => {}
+                                  }
+               };
+    if (my $details = $self->credit_card_info) {
+        $hash->{ShipmentCharge}->{BillShipper}->{CreditCard} =
+          Shipping::UPS::Tiny::CC->new(%$details)->as_hash;
+    }
+    else {
+        $hash->{ShipmentCharge}->{BillShipper}->{AccountNumber} =
+          $self->ups_account;
+    }
+    return  $hash;
 }
 
 

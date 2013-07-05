@@ -65,9 +65,13 @@ has service_code => (is => 'ro',
 
 =head1 METHODS
 
+=over 4
+
 =item as_hash
 
 Produce a comformant hash to feed the SOAP request.
+
+=back
 
 =cut
 
@@ -81,9 +85,5 @@ sub as_hash {
            };
 }
 
-
-=head
-
-=cut
 
 1;

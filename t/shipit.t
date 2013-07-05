@@ -75,6 +75,14 @@ ok($ups->package_props);
 
 print Dumper($ups->package_props);
 
+$ups->credit_card_info({
+                        %{$conf->{from}},
+                        number => '4111111111111111',
+                        type => '06',
+                        sec_code => '123',
+                        expire => '122016',
+                       });
+
 my ($res, $trace) =  $ups->ship("Test");
 
 # brilliant! a HTML page in base 64!
