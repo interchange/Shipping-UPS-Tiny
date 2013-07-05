@@ -30,21 +30,25 @@ is($ups->endpoint, "https://wwwcie.ups.com/webservices/Ship",
 
 ok($ups->soap, "SOAP client exists");
 
+print Dumper $conf->{from};
+
 $ups->from({
             %{ $conf->{from} }
            });
 
-ok($ups->from_address);
+ok($ups->from_address, "From address OK");
 print Dumper $ups->from_address;
 
 $ups->to({
           %{ $conf->{to} }
          });
 
-ok($ups->to_address);
+ok($ups->to_address, "To address OK");
 print Dumper $ups->to_address;
 
+ok($ups->shipper_address, "Shipper address OK");
 
+print Dumper($ups->shipper_address);
 
 $ups->set_package({
                    description => "Test package",
@@ -57,8 +61,6 @@ $ups->set_package({
 ok($ups->package_props);
 
 print Dumper($ups->package_props);
-
-is $ups->shipper, undef, "Shipper is undef";
 
 my ($res, $trace) =  $ups->ship("Test");
 

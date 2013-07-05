@@ -134,6 +134,10 @@ The origin address (read only, set by the method C<from>)
 
 The destination  (read only, set by the method C<to>)
 
+=item shipper_address
+
+The shipper address (read only, set by the method C<shippper>)
+
 =back
 
 =cut
@@ -142,7 +146,7 @@ has from_address => (is => 'rwp');
 
 has to_address => (is => 'rwp');
 
-has shipper => (is => 'rwp');
+has shipper_address => (is => 'rwp');
 
 =head1 METHODS
 
@@ -157,6 +161,11 @@ L<UPS::Shipment::Tiny::Address>
 =item from
 
 =item to
+
+=item shipper
+
+This is optional and by default the values from the method C<from> are
+taken.
 
 =back
 
@@ -184,6 +193,10 @@ sub from {
     # all is supposed to die here if the args are not validated.
     # eventually, wrap this in eval
     my $addr = Shipping::UPS::Tiny::Address->new(%$args);
+    # build the shipper if not already set
+    unless ($self->shipper_address) {
+        $self->_build_shipper_address($args);
+    };
     $self->_set_from_address($addr->as_hash);
 };
 
@@ -195,9 +208,18 @@ sub to {
 
 sub shipper {
     my ($self, $args) = @_;
-    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
-    $self->_set_shipper_address($addr->as_hash);
+    $self->_build_shipper_address($args);
 }
+
+sub _build_shipper_address {
+    my ($self, $args) = @_;
+    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
+    my $hash = $addr->as_hash;
+    # add the shipper number, without it the request would fail
+    $hash->{ShipperNumber} = $self->ups_account;
+    $self->_set_shipper_address($hash);
+}
+
 
 has package_props => (is => 'rwp');
 
@@ -256,7 +278,7 @@ sub _build_hash {
                Shipment =>
                {
                 Description => $self->_description,
-                Shipper => $self->shipper || { %{ $self->from_address} },
+                Shipper => $self->shipper_address,
                 ShipTo => $self->to_address,
                 ShipFrom => $self->from_address,
                 Service => {
@@ -276,8 +298,6 @@ sub _build_hash {
                 HTTPUserAgent => 'Mozilla/4.5'
                }
               };
-    # add the shipper number
-    $req->{Shipment}->{Shipper}->{ShipperNumber} = $self->ups_account;
     return $req;
 }
 
