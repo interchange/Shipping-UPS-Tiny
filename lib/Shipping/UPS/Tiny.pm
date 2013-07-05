@@ -286,7 +286,32 @@ has credit_card_info => (is => 'rw',
 Ship the package with UPS and return a
 L<Shipping::UPS::Tiny::Package::Response> object.
 
+=item debug_trace
+
+After calling C<ship>, the SOAP request is stored in the object and
+can be accessed with this accessor.
+
+Tipical usage:
+
+  $obj->debug_trace->printRequest;
+  $obj->debug_trace->printResponse;
+
+=item debug_hash_request
+
+The gigantic deep hash produced by the object is stored for further
+inspection in this accessor.
+
+=item debug_hash_response
+
+Accessor to the hash returned by the last SOAP request.
+
 =cut
+
+has debug_trace => (is => 'rwp');
+
+has debug_hash_request => (is => 'rwp');
+
+has debug_hash_response => (is => 'rwp');
 
 sub ship {
     my ($self, $desc) = @_;
@@ -294,51 +319,66 @@ sub ship {
         $self->_description($desc)
     };
     my $request = $self->_build_hash;
+
+    $self->_set_debug_hash_request($request);
     my ($response, $trace) = $self->soap->($request, 'UTF-8');
-    return $response, $trace;
+
+    $self->_set_debug_trace($trace);
+    $self->_set_debug_hash_response($response);
+    return $response;
 }
 
 has _description => (is => 'rw',
                      default => sub { return "" });
 
+
+sub _credentials {
+    my $self = shift;
+    return {
+            UsernameToken => {
+                              Username => $self->username,
+                              Password => $self->password,
+                             },
+            ServiceAccessToken => {
+                                   AccessLicenseNumber => $self->account_key,
+                                  },
+           };
+}
+
+
+sub _label_spec {
+    my $self = shift;
+    return {
+            LabelImageFormat => {
+                                 Code => 'GIF',
+                                 Description => 'GIF'
+                                },
+            HTTPUserAgent => 'Mozilla/4.5'
+           };
+}
+
+sub _request_opts {
+    my $self = shift;
+    return {
+            RequestOption => 'nonvalidate',
+           };
+}
+
 sub _build_hash {
     my $self = shift;
     my $req = {
-               UPSSecurity => 
-               {
-                UsernameToken =>
-                {
-                 Username => $self->username,
-                 Password => $self->password,
-                },
-                ServiceAccessToken =>
-                {
-                 AccessLicenseNumber => $self->account_key,
-                },
-               },
-               Request =>
-               {
-                RequestOption => 'nonvalidate',
-               },
-               Shipment =>
-               {
-                Description => $self->_description,
-                Shipper => $self->shipper_address,
-                ShipTo => $self->to_address,
-                ShipFrom => $self->from_address,
-                Service => $self->service,
-                Package => $self->package_props,
-                PaymentInformation => $self->payment_info,
-               },
-               LabelSpecification =>
-               {
-                LabelImageFormat =>
-                {
-                 Code => 'GIF',
-                 Description => 'GIF'
-                },
-                HTTPUserAgent => 'Mozilla/4.5'
-               }
+               UPSSecurity => $self->_credentials,
+               Request => $self->_request_opts,
+               Shipment => {
+                            Description => $self->_description,
+                            Shipper => $self->shipper_address,
+                            ShipTo => $self->to_address,
+                            ShipFrom => $self->from_address,
+                            Service => $self->service,
+                            Package => $self->package_props,
+                            PaymentInformation => $self->payment_info,
+                           },
+               LabelSpecification => $self->_label_spec,
               };
     return $req;
 }

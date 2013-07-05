@@ -83,7 +83,11 @@ $ups->credit_card_info({
                         expire => '122016',
                        });
 
-my ($res, $trace) =  $ups->ship("Test");
+my $res =  $ups->ship("Test");
+
+ok ($ups->debug_trace->request->content);
+$ups->debug_trace->printRequest;
+$ups->debug_trace->printResponse;
 
 # brilliant! a HTML page in base 64!
 my $html = $res->{Body}->{ShipmentResults}->{PackageResults}->[0]->{ShippingLabel}->{HTMLImage};
