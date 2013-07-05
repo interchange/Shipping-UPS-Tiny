@@ -30,25 +30,25 @@ is($ups->endpoint, "https://wwwcie.ups.com/webservices/Ship",
 
 ok($ups->soap, "SOAP client exists");
 
-print Dumper $conf->{from};
+# print Dumper $conf->{from};
 
 $ups->from({
             %{ $conf->{from} }
            });
 
 ok($ups->from_address, "From address OK");
-print Dumper $ups->from_address;
+# print Dumper $ups->from_address;
 
 $ups->to({
           %{ $conf->{to} }
          });
 
 ok($ups->to_address, "To address OK");
-print Dumper $ups->to_address;
+# print Dumper $ups->to_address;
 
 ok($ups->shipper_address, "Shipper address OK");
 
-print Dumper($ups->shipper_address);
+# print Dumper($ups->shipper_address);
 
 $ups->set_package({
                    description => "Test package",
@@ -73,7 +73,7 @@ is_deeply($ups->service, {
 
 ok($ups->package_props);
 
-print Dumper($ups->package_props);
+# print Dumper($ups->package_props);
 
 $ups->credit_card_info({
                         %{$conf->{from}},
@@ -87,62 +87,24 @@ $ups->credit_card_info({
 my $res =  $ups->ship("Test");
 
 ok ($ups->debug_trace->request->content);
-$ups->debug_trace->printRequest;
-$ups->debug_trace->printResponse;
+# $ups->debug_trace->printRequest;
+# $ups->debug_trace->printResponse;
 
 ok($res->is_success, "Success!");
 ok(!$res->is_fault, "No fault");
 ok(!$res->alert, "No alerts");
-
-
+ok($res->ship_id, "Got an ID " . $res->ship_id);
+ok($res->billing_weight, "Total weight: " . $res->billing_weight);
+ok($res->shipment_charges, "Total charging: " . $res->shipment_charges);
+ok($res->packages, "Got packages");
+my $targetdir = "t/labels-$$";
+diag "Saving labels in $targetdir";
+$res->save_labels($targetdir);
 
 $ups->service('01');
 $res = $ups->ship("test fault");
 ok($res->is_fault);
-print Dumper($res->raw_response);
-print Dumper($res);
 ok(!$res->is_success);
-print $res->is_fault;
+diag $res->is_fault;
 ok(!$res->alert);
-
-
-done_testing;
-exit;
-
-# brilliant! a HTML page in base 64!
-my $html = $res->{Body}->{ShipmentResults}->{PackageResults}->[0]->{ShippingLabel}->{HTMLImage};
-my $label = delete $res->{Body}->{ShipmentResults}->{PackageResults}->[0]->{ShippingLabel}->{GraphicImage};
-my $track = $res->{Body}->{ShipmentResults}->{PackageResults}->[0]->{TrackingNumber};
-
-ok($html);
-ok($label);
-
-my $label_html_file = catfile(t => "label$track.html");
-my $label_graphics_file = catfile(t => "label$track.gif");
-
-for ($label_graphics_file, $label_html_file) {
-    if (-e $_) {
-        unlink $_ or die "Cannot unlink $_ $!";
-    }
-}
-
-open (my $fh, ">", $label_html_file) or die "Cannot open $label_html_file $!";
-print $fh decode_base64($html);
-close $fh;
-
-open (my $fhx, ">", $label_graphics_file) or die "Cannot open $label_graphics_file $!";
-print $fhx decode_base64($label);
-close $fhx;
-
-
-
-
-print Dumper($res);
-
-
-
-
-
-
-
 done_testing;
