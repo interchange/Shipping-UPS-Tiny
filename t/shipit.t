@@ -52,10 +52,10 @@ ok($ups->shipper_address, "Shipper address OK");
 
 $ups->set_package({
                    description => "Test package",
-                   length => 1,
-                   width => 2,
-                   height => 3,
-                   weight => 0.2,
+                   length => 10,
+                   width => 10,
+                   height => 10,
+                   weight => 0.1,
                   });
 
 is_deeply($ups->service, {
@@ -70,8 +70,11 @@ is_deeply($ups->service, {
                           Description => 'Express',
                          }, "service changed ok");
 
+$ups->service('11');
+
 
 ok($ups->package_props);
+diag Dumper($ups->package_props);
 
 # print Dumper($ups->package_props);
 
@@ -92,6 +95,9 @@ ok ($ups->debug_trace->request->content);
 
 ok($res->is_success, "Success!");
 ok(!$res->is_fault, "No fault");
+diag $res->is_fault || "OK";
+
+
 ok(!$res->alert, "No alerts");
 ok($res->ship_id, "Got an ID " . $res->ship_id);
 ok($res->billing_weight, "Total weight: " . $res->billing_weight);

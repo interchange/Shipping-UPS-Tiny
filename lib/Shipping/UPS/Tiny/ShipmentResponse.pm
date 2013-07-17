@@ -53,25 +53,24 @@ sub _trigger_raw_response {
     # set the various hashrefs
     my $self = shift;
     my $raw = $self->raw_response;
-
+    # warn Dumper($raw);
     # it's not clear when the root is "Body" or the keys sit on the
     # the root.
 
-    if (exists $raw->{Fault}) {
-        $self->_fault($raw->{Fault});
-    }
-    elsif (exists $raw->{Body}->{Fault}) {
-        $self->_fault($raw->{Body}->{Fault})
+    if ((exists $raw->{Fault}) or
+        (exists $raw->{Body} and exists $raw->{Body}->{Fault}) or
+        (exists $raw->{ShippingError})) {
+        $self->_store_error_details;
     }
 
-    if (exists $raw->{Body}->{Response}) {
+    if (exists $raw->{Body} and exists $raw->{Body}->{Response}) {
         $self->_response($raw->{Body}->{Response});
     }
     elsif (exists $raw->{Response}) {
         $self->_response($raw->{Response});
     }
 
-    if (exists $raw->{Body}->{ShipmentResults}) {
+    if (exists $raw->{Body} and exists $raw->{Body}->{ShipmentResults}) {
         $self->_result($raw->{Body}->{ShipmentResults});
     }
     elsif (exists $raw->{ShipmentResults}) {
@@ -86,16 +85,10 @@ sub _trigger_raw_response {
 sub is_fault {
     my $self = shift;
     my $desc = "";
-    if (my $fault = $self->_fault) {
-        if (exists $fault->{detail}->{Errors}->{ErrorDetail}) {
-            my $details = $fault->{detail}->{Errors}->{ErrorDetail};
-            foreach my $f (@$details) {
-                $desc .= $f->{PrimaryErrorCode}->{Description} . " (" .
-                  $f->{PrimaryErrorCode}->{Code} . ")\n";
-            }
-        }
-        else {
-            die "Cannot handle: " . Dumper($self->raw_response);
+    if (my $faults = $self->_fault) {
+        foreach my $f (@$faults) {
+            $desc .= $f->{PrimaryErrorCode}->{Description} . " (" .
+              $f->{PrimaryErrorCode}->{Code} . ")\n";
         }
     }
     return $desc;
@@ -253,6 +246,28 @@ sub save_labels {
         print $fh decode_base64($pack->{label});
         close $fh;
     }
+}
+
+sub _store_error_details {
+    my $self = shift;
+    my $raw = $self->raw_response;
+    my $error;
+    if (exists $raw->{ShipmentError}) {
+        $error = $raw->{ShipmentError}->{ErrorDetail};
+    }
+    elsif (exists $raw->{Fault}->{detail}->{Errors} and
+        exists $raw->{Fault}->{detail}->{Errors}->{ErrorDetail}) {
+        $error = $raw->{Fault}->{details}->{Errors}->{ErrorDetail};
+    }
+    elsif (exists $raw->{Body} and
+           exists $raw->{Body}->{Fault}->{details}->{Errors} and
+           exists $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail}) {
+        $error = $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail};
+    }
+    unless ($error) {
+        die "Unable to handle " . Dumper($raw);
+    }
+    $self->_fault($error);
 }
 
 =back
