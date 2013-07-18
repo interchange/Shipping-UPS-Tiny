@@ -1,4 +1,4 @@
-use 5.010001;
+use 5.010000;
 use strict;
 use warnings FATAL => 'all';
 use ExtUtils::MakeMaker;
@@ -10,7 +10,7 @@ WriteMakefile(
     ABSTRACT_FROM    => 'lib/Shipping/UPS/Tiny.pm',
     LICENSE          => 'Artistic_2_0',
     PL_FILES         => {},
-    MIN_PERL_VERSION => 5.010001,
+    MIN_PERL_VERSION => 5.010000,
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },

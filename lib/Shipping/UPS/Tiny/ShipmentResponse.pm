@@ -1,6 +1,6 @@
 package Shipping::UPS::Tiny::ShipmentResponse;
 
-use 5.010001;
+use 5.010000;
 use strict;
 use warnings FATAL => 'all';
 use Moo;
