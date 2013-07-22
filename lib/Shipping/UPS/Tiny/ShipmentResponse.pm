@@ -7,7 +7,7 @@ use Moo;
 use Data::Dumper;
 use File::Spec;
 use MIME::Base64 qw/decode_base64/;
-use File::Path qw/make_path/;
+use File::Path qw/mkpath/;
 
 =head1 NAME
 
@@ -238,7 +238,7 @@ sub save_labels {
     if ((-e $where) && (! -d $where)) {
         die "$where exists and is not a directory" 
     }
-    make_path($where);
+    mkpath($where);
     foreach my $pack ($self->packages) {
         my $name = File::Spec->catfile($where, "label" . $pack->{tracking_number} . "." . $pack->{ext});
         die "I should not overwrite $name!" if -e $name;
