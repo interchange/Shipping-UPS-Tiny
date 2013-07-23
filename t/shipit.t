@@ -8,6 +8,8 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
+plan tests => 26;
+
 my $conffile = catfile(t => 'conf.yml');
 
 unless (-f $conffile) {
@@ -103,9 +105,15 @@ ok($res->ship_id, "Got an ID " . $res->ship_id);
 ok($res->billing_weight, "Total weight: " . $res->billing_weight);
 ok($res->shipment_charges, "Total charging: " . $res->shipment_charges);
 ok($res->packages, "Got packages");
-my $targetdir = "t/labels-$$";
+my $targetdir = catdir(t => "labels-$$");
 diag "Saving labels in $targetdir";
 $res->save_labels($targetdir);
+
+foreach my $pack ($res->packages) {
+    ok(-f catfile($targetdir, $pack->{label_filename}));
+}
+
+
 
 $ups->service('01');
 $res = $ups->ship("test fault");
@@ -113,4 +121,4 @@ ok($res->is_fault);
 ok(!$res->is_success);
 diag $res->is_fault;
 ok(!$res->alert);
-done_testing;
+

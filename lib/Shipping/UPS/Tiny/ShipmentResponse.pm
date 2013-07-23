@@ -191,6 +191,7 @@ with the following keys:
     html # the HTML in base64
     label # the image in  base64 
     ext  # extension
+    label_filename # the filename where the label will be saved
 
 =cut
 
@@ -208,6 +209,9 @@ sub packages {
                              ext => lc($pack->{ShippingLabel}->{ImageFormat}->{Code}),
                             };
             # check
+            $pack_info->{label_filename} = "label" . $pack_info->{tracking_number}
+              . "." . $pack_info->{ext};
+
             foreach my $k (keys %$pack_info) {
                 die "Missing expected key $k" unless $pack_info->{$k};
             }
@@ -240,7 +244,7 @@ sub save_labels {
     }
     mkpath($where);
     foreach my $pack ($self->packages) {
-        my $name = File::Spec->catfile($where, "label" . $pack->{tracking_number} . "." . $pack->{ext});
+        my $name = File::Spec->catfile($where, $pack->{label_filename});
         die "I should not overwrite $name!" if -e $name;
         open (my $fh, ">", $name) or die "cannot open $name $!";
         print $fh decode_base64($pack->{label});
