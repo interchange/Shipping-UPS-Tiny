@@ -1,0 +1,23 @@
+account:
+  username: 'xxxx'
+  password: 'xxxx'
+  account_key: 'xxxx'
+  ups_account: 'xxxx'
+  wsdlfile: 't/SCHEMA-WSDLs/Ship.wsdl'
+  schema_dir: 't/SCHEMA-WSDLs'
+from:
+  company: 'Jon Doe d.o.o.'
+  name: 'Joh Doe'
+  address: 'Fantasy road'
+  city: 'London'
+  postal_code: 'XXXXX'
+  country: 'UK'
+  phone: '12341234'
+to:
+  company: 'Big Jim d.o.o.'
+  name: 'Big Jim'
+  address: 'rue de Fantasy'
+  city: 'Paris'
+  postal_code: 'XXXXXX'
+  country: 'FR'
+  phone: '12341234'
