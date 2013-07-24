@@ -143,7 +143,7 @@ The destination  (read only, set by the method C<to>)
 
 =item shipper_address
 
-The shipper address (read only, set by the method C<shippper>)
+The shipper address (read only, set by the method C<shipper>)
 
 =cut
 
