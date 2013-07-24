@@ -19,7 +19,8 @@ On the label, this field is used as "Attention name".
 
 =item company
 
-On the lable, this will be used as "Name", defaulting to C<name>.
+On the label, UPS refers to this as "Name". If not provided, the value
+of the above accessor C<name> will be used.
 
 =item address
 
