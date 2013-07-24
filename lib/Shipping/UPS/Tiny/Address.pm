@@ -17,22 +17,44 @@ Shipping::UPS::Tiny::Address - Address object
 
 On the label, this field is used as "Attention name". 
 
+The value accepted has max 35 characters, and only 25 will be used in
+the label (30 in the From field).
+
+We trim the value without issuing warnings if it exceedes the limit.
+
 =item company
 
 On the label, UPS refers to this as "Name". If not provided, the value
 of the above accessor C<name> will be used.
 
+The value accepted has max 35 characters, and only 25 will be used in
+the label (30 in the From field).
+
+We trim the value without issuing warnings if it exceedes the limit.
+
 =item address
+
+The value accepted has max 35 characters, and only 25 will be used in
+the label (30 in the From field).
+
+We trim the value without issuing warnings if it exceedes the limit.
 
 =item province
 
-(or state for US)
+(or state for US). This is mandatory only if shipping to US or CA.
 
 =item city
+
+The value accepted has max 30 characters, and only 15 will be used in
+the label.
+
+We trim the value without issuing warnings if it exceedes the limit.
 
 =item postal_code
 
 =item country
+
+Country code.
 
 =item phone
 
@@ -86,12 +108,13 @@ Output the address an an hash ready for L<XML::Compile::SOAP>
 sub as_hash {
     my $self = shift;
     # mandatory fields
+    my $name = $self->company || $self->name;
     my $addr = {
-                Name => $self->company || $self->name,
-                AttentionName => $self->name,
+                Name => substr($name, 0, 35),
+                AttentionName => substr($self->name, 0, 35),
                 Address => {
-                            AddressLine => $self->address,
-                            City => $self->city,
+                            AddressLine => substr($self->address, 0, 35),
+                            City => substr($self->city, 0, 30),
                             StateProvinceCode => $self->province,
                             PostalCode => $self->postal_code,
                             CountryCode => $self->country,
