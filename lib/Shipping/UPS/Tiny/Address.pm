@@ -15,9 +15,11 @@ Shipping::UPS::Tiny::Address - Address object
 
 =item name
 
-=item attention_name
+On the label, this field is used as "Attention name". 
 
 =item company
+
+On the lable, this will be used as "Name", defaulting to C<name>.
 
 =item address
 
@@ -40,10 +42,6 @@ Shipping::UPS::Tiny::Address - Address object
 Tax identification number
 
 =cut
-
-
-has attention_name => (is => 'ro',
-                       default => sub { return "" });
 
 has name => (is => 'ro',
              required => 1);
@@ -88,8 +86,8 @@ sub as_hash {
     my $self = shift;
     # mandatory fields
     my $addr = {
-                Name => $self->name,
-                AttentionName => $self->attention_name || $self->name,
+                Name => $self->company || $self->name,
+                AttentionName => $self->name,
                 Address => {
                             AddressLine => $self->address,
                             City => $self->city,
