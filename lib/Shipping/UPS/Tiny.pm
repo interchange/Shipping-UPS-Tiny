@@ -190,7 +190,7 @@ Available options:
     SE   Serial Number                                    
     ST   Store Number                                     
     TN   Transaction Reference Number                     
-    EI   Employer’s ID Number                             
+    EI   Employer's ID Number                             
     TJ   Federal Taxpayer ID No.                          
     SY   Social Security Number
     
