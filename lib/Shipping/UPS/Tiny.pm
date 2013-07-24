@@ -145,8 +145,6 @@ The destination  (read only, set by the method C<to>)
 
 The shipper address (read only, set by the method C<shippper>)
 
-=back
-
 =cut
 
 has from_address => (is => 'rwp');
@@ -154,6 +152,84 @@ has from_address => (is => 'rwp');
 has to_address => (is => 'rwp');
 
 has shipper_address => (is => 'rwp');
+
+=item reference_number
+
+Optional reference number to pass to UPS. The doc says (p.89)
+
+Valid if the origin/destination pair is not US/US or PR/PR
+
+=cut
+
+has reference_number => (is => 'rw');
+
+=item reference_number_type
+
+If the reference number is set, you also need to set the type (by
+code). Defaults to 'PO'.
+
+Available options:
+
+    Code Description                                      
+    AJ   Accounts Receivable Customer Account             
+    AT   Appropriation Number                             
+    BM   Bill of Lading Number                            
+    9V   Collect on Delivery (COD) Number                 
+    ON   Dealer Order Number                              
+    DP   Department Number                                
+    3Q   Food and Drug Administration (FDA) Product Code  
+    IK   Invoice Number                                   
+    MK   Manifest Key Number                              
+    MJ   Model Number                                     
+    PM   Part Number                                      
+    PC   Production Code                                  
+    PO   Purchase Order Number                            
+    RQ   Purchase Request Number                          
+    RZ   Return Authorization Number                      
+    SA   Salesperson Number                               
+    SE   Serial Number                                    
+    ST   Store Number                                     
+    TN   Transaction Reference Number                     
+    EI   Employer’s ID Number                             
+    TJ   Federal Taxpayer ID No.                          
+    SY   Social Security Number
+    
+=back
+
+=cut
+
+my %ref_num_types = (
+    'AJ'   => 'Accounts Receivable Customer Account',
+    'AT'   => 'Appropriation Number',
+    'BM'   => 'Bill of Lading Number',
+    '9V'   => 'Collect on Delivery (COD) Number',
+    'ON'   => 'Dealer Order Number',
+    'DP'   => 'Department Number',
+    '3Q'   => 'Food and Drug Administration (FDA) Product Code',
+    'IK'   => 'Invoice Number',
+    'MK'   => 'Manifest Key Number',
+    'MJ'   => 'Model Number',
+    'PM'   => 'Part Number',
+    'PC'   => 'Production Code',
+    'PO'   => 'Purchase Order Number',
+    'RQ'   => 'Purchase Request Number',
+    'RZ'   => 'Return Authorization Number',
+    'SA'   => 'Salesperson Number',
+    'SE'   => 'Serial Number',
+    'ST'   => 'Store Number',
+    'TN'   => 'Transaction Reference Number',
+    'EI'   => 'Employer’s ID Number',
+    'TJ'   => 'Federal Taxpayer ID No.',
+    'SY'   => 'Social Security Number',
+);
+
+has reference_number_type => (is => 'rw',
+                              default => sub { return 'PO' },
+                              isa => sub {
+                                  my $code = $_[0];
+                                  die "Wrong reference_number_type code!"
+                                    unless $ref_num_types{$code};
+                              });
 
 =head1 METHODS
 
@@ -381,6 +457,10 @@ sub _build_hash {
                            },
                LabelSpecification => $self->_label_spec,
               };
+    if ($self->reference_number) {
+        $req->{Shipment}->{ReferenceNumber}->{Value} = $self->reference_number;
+        $req->{Shipment}->{ReferenceNumber}->{Code} = $self->reference_number_type;
+    }
     return $req;
 }
 
