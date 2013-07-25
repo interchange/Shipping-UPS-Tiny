@@ -8,7 +8,7 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 26;
+plan tests => 29;
 
 my $conffile = catfile(t => 'conf.yml');
 
@@ -103,7 +103,11 @@ diag $res->is_fault || "OK";
 ok(!$res->alert, "No alerts");
 ok($res->ship_id, "Got an ID " . $res->ship_id);
 ok($res->billing_weight, "Total weight: " . $res->billing_weight);
+ok($res->billing_weight_unit, "Weight unit: " . $res->billing_weight_unit);
+ok($res->billing_weight_in_grams, "In grams: " . $res->billing_weight_in_grams);
 ok($res->shipment_charges, "Total charging: " . $res->shipment_charges);
+ok($res->shipment_charges_currency,
+   "Currency of the shipment fee: " . $res->shipment_charges_currency);
 ok($res->packages, "Got packages");
 my $targetdir = catdir(t => "labels-$$");
 diag "Saving labels in $targetdir";

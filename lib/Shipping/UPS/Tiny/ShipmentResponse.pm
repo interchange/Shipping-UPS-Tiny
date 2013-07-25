@@ -137,36 +137,83 @@ sub ship_id {
 
 =item billing_weight
 
-The billing weight, as a string (with units of measurement), to be
-displayed.
+The billing weight in numeric value. (KGS or LBS).
+
+=item billing_weight_unit
+
+The billing weight unit used, as returned by UPS (KGS or LBS).
+
+=item billing_weight_in_grams
+
+The billing weight in grams. It returns an integer without decimals.
+
+=item billing_weight_details
+
+The raw hash returned by UPS for the billing weight
 
 =cut
 
 sub billing_weight {
     my $self = shift;
     return "" unless $self->is_success;
-
-    die "Unhandled exception with billing weight"
-      unless $self->_result->{BillingWeight}->{Weight};
-
-    return $self->_result->{BillingWeight}->{Weight} . " " .
-      $self->_result->{BillingWeight}->{UnitOfMeasurement}->{Code};
+    return $self->billing_weight_details->{Weight};
 }
+
+sub billing_weight_unit {
+    my $self = shift;
+    return "" unless $self->is_success;
+    return $self->billing_weight_details->{UnitOfMeasurement}->{Code};
+}
+
+sub billing_weight_details {
+    my $self = shift;
+    return {} unless $self->is_success;
+    die "Missing Billing weight!" unless $self->_result->{BillingWeight};
+    return $self->_result->{BillingWeight};
+}
+
+sub billing_weight_in_grams {
+    my $self = shift;
+    my $unit = $self->billing_weight_unit;
+    my $weight = $self->billing_weight;
+
+#  international avoirdupois pound which is legally defined as exactly
+#  0.45359237 kilograms. http://en.wikipedia.org/wiki/Pound_%28mass%29
+
+    if ($unit eq 'KGS') {
+        return sprintf('%d', $weight * 1000);
+    }
+    elsif ($unit eq 'LBS') {
+        return sprintf('%d', $weight * 0.45359237 * 1000);
+    }
+    else {
+        die "unrecognized unit $unit";
+    }
+}
+
 
 =item shipment_charges
 
 The total charge, as a string with total and currency, to be displayed.
+
+=item shipment_charges_currency
+
+The currency code returned by UPS for the shipment fee.
 
 =cut
 
 sub shipment_charges {
     my $self = shift;
     return "" unless $self->is_success;
-
-    die "Missing charges" unless $self->_result->{ShipmentCharges};
-    return $self->_result->{ShipmentCharges}->{TotalCharges}->{MonetaryValue} . " " .
-      $self->_result->{ShipmentCharges}->{TotalCharges}->{CurrencyCode};
+    return sprintf('%.2f', $self->shipment_charges_details->{TotalCharges}->{MonetaryValue});
 }
+
+sub shipment_charges_currency {
+    my $self = shift;
+    return "" unless $self->is_success;
+    return $self->shipment_charges_details->{TotalCharges}->{CurrencyCode};
+}
+
 
 =item shipment_charges_details
 
@@ -178,7 +225,8 @@ response.
 
 sub shipment_charges_details {
     my $self = shift;
-    return "" unless $self->is_success;
+    return {} unless $self->is_success;
+    die "Missing ShipmentCharges key!" unless exists $self->_result->{ShipmentCharges};
     return $self->_result->{ShipmentCharges};
 }
 
