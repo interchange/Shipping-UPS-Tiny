@@ -236,11 +236,18 @@ has reference_number_type => (is => 'rw',
 
 Set this to a true value to ask UPS to validate the address.
 
+=item negotiated_rates
+
+Set this to a true value to signal UPS that you have negotiated rates.
+
 =back
 
 =cut
 
 has address_validation => (is => 'rw');
+
+
+has negotiated_rates => (is => 'rw');
 
 
 =head1 METHODS
@@ -478,6 +485,9 @@ sub _build_hash {
     if ($self->reference_number) {
         $req->{Shipment}->{ReferenceNumber}->{Value} = $self->reference_number;
         $req->{Shipment}->{ReferenceNumber}->{Code} = $self->reference_number_type;
+    }
+    if ($self->negotiated_rates) {
+        $req->{Shipment}->{ShipmentRatingOptions}->{NegotiatedRatesIndicator} = "";
     }
     return $req;
 }

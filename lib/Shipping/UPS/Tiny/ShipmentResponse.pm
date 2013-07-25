@@ -96,20 +96,20 @@ sub is_fault {
 
 sub alert {
     my $self = shift;
-    my $alert = "";
+    my $out = "";
     return "" unless $self->_response;
     if (exists $self->_response->{Alert}) {
         my $alert = $self->_response->{Alert};
         if (ref($alert) eq 'ARRAY') {
             foreach my $al (@$alert) {
-                $alert .= $alert->{Description} . "( " . $alert->{Code} . ")\n";
+                $out .= $al->{Description} . "( " . $al->{Code} . ")\n";
             }
         }
         elsif (ref($alert) eq 'HASH') {
-            $alert = $alert->{Description} . "( " . $alert->{Code} . ")\n";
+            $out = $alert->{Description} . "( " . $alert->{Code} . ")\n";
         }
     }
-    return $alert;
+    return $out;
 }
 
 
