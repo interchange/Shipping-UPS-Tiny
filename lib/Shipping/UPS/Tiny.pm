@@ -194,7 +194,6 @@ Available options:
     TJ   Federal Taxpayer ID No.                          
     SY   Social Security Number
     
-=back
 
 =cut
 
@@ -230,6 +229,19 @@ has reference_number_type => (is => 'rw',
                                   die "Wrong reference_number_type code!"
                                     unless $ref_num_types{$code};
                               });
+
+
+
+=item address_validation
+
+Set this to a true value to ask UPS to validate the address.
+
+=back
+
+=cut
+
+has address_validation => (is => 'rw');
+
 
 =head1 METHODS
 
@@ -436,8 +448,14 @@ sub _label_spec {
 
 sub _request_opts {
     my $self = shift;
+    my $value = 'nonvalidate';
+
+    if ($self->address_validation) {
+        $value = 'validate';
+    }
+
     return {
-            RequestOption => 'nonvalidate',
+            RequestOption => $value
            };
 }
 
