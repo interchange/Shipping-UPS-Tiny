@@ -20,6 +20,12 @@ WriteMakefile(
     PREREQ_PM => {
                   'XML::Compile::SOAP' => 0,
                   'Moo' => 0,
+                  'Date::Parse' => 0,
+                  'XML::Compile::Schema' => 0,
+                  'XML::LibXML' => 0,
+                  'XML::LibXML::Simple' => 0,
+                  'LWP::UserAgent' => 0,
+                  'HTTP::Request' => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Shipping-UPS-Tiny-*' },
