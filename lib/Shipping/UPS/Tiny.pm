@@ -13,6 +13,7 @@ use Shipping::UPS::Tiny::CC;
 use Shipping::UPS::Tiny::Package;
 use Shipping::UPS::Tiny::Service;
 use Shipping::UPS::Tiny::ShipmentResponse;
+use Shipping::UPS::Tiny::QuantumView;
 
 use Moo;
 
@@ -55,7 +56,7 @@ if you don't export anything, such as for a purely object-oriented module.
 
 =item account_key
 
-The kye provided by UPS
+The key provided by UPS
 
 =item username
 
@@ -521,6 +522,42 @@ sub payment_info {
     }
     return  $hash;
 }
+
+
+=head2 Quantum View
+
+Quantum View provides access to the details about the shipments.
+
+If there is a named subscription, only the selected data will be
+retrieved. No subscription means retrieving of the full batch of data.
+
+The following method return a L<Shipping::UPS::Tiny::QuantumView>
+object, inheriting the credential from this module. Depending on the
+user case, you may want to use L<Shipping::UPS::Tiny::QuantumView> as
+a standalone module.
+
+=head3 quantum_view(option1 => value, option2 => value)
+
+Please refer to L<Shipping::UPS::Tiny::QuantumView> for the possible
+options.
+
+Anyway, if called from here, we inject the existing credentials if
+they are not passed as argument.
+
+=cut
+
+sub quantum_view {
+    my $self = shift;
+    die "please pass the argument as a plain paired list" if (@_ % 2);
+    my %args = @_;
+    foreach my $k (qw/username account_key password/) {
+        unless (exists $args{$k}) {
+            $args{$k} = $self->$k;
+        }
+    }
+    return Shipping::UPS::Tiny::QuantumView->new(%args);
+}
+
 
 
 =head2 INTERNALS
