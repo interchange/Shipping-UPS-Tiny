@@ -24,7 +24,7 @@ unless (-d $schema_dir) {
 
 
 
-plan tests => 9;
+plan tests => 13;
 
 
 
@@ -66,11 +66,20 @@ my $expected = {
 
 is_deeply($got, $expected, "Request hash is correct");
 
-ok ($qv->fetch(begin => '2013-07-01',
-               end => '2013-08-01')->is_success, "request Ok");
+my $res = $qv->fetch(begin => '2013-07-01',
+                     end => '2013-08-01');
 
-ok($qv->fetch(days => 7)->is_success, "request OK");
+ok ($res->parsed_data, "request Ok for range");
+ok (!$res->is_success, "Not ok, range is off");
+print Dumper($res->parsed_data);
 
-my $res = $qv->fetch(unread => 1);
-$res->is_success;
-print substr($res->content, 0, 1000);
+$res = $qv->fetch(days => 7);
+ok ($res->parsed_data, "request Ok for 7 days");
+ok($res->is_success, "Ok, we got something");
+print Dumper($res->parsed_data);
+
+$res = $qv->fetch(unread => 1);
+ok( $res->parsed_data);
+ok($res->is_success);
+print Dumper([ keys %{$res->parsed_data} ]);
+

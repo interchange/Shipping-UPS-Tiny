@@ -4,14 +4,14 @@ use 5.010000;
 use strict;
 use warnings FATAL => 'all';
 use Date::Parse;
-use Moo;
 use File::Spec;
 use XML::Compile::Schema;
 use XML::LibXML;
-use XML::LibXML::Simple;
 use LWP::UserAgent;
 use HTTP::Request;
 use POSIX qw/strftime/;
+use Shipping::UPS::Tiny::QuantumView::Response;
+use Moo;
 
 
 =head1 NAME
@@ -87,7 +87,9 @@ has subscription_name => (is => 'rw');
 
 =item fetch(begin => "18/dec/2013", end => "22/dec/2012")
 
-The main method. Fetch the data from UPS and return them as an hashref.
+The main method. Fetch the data from UPS and return a
+L<Shipping::UPS::Tiny::QuantaView::Response> object.
+
 Options (mutually exclusive):
 
   unread => 1
@@ -146,7 +148,7 @@ sub fetch {
 
 sub _fetch_unread {
     my $self = shift;
-    return $self->_retrieve;
+    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $self->_retrieve);
 }
 
 # sub _fetch_unread {
@@ -168,6 +170,7 @@ sub _fetch_range {
     my ($self, $beg, $end) = @_;
     my $res = $self->_retrieve(beg => $beg,
                                end => $end);
+    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $res);
 }
 
 has debug_request => (is => 'rwp',
@@ -176,7 +179,9 @@ has debug_request => (is => 'rwp',
 
 has ua => (is => 'ro',
            default => sub {
-             return LWP::UserAgent->new();  
+               my $ua = LWP::UserAgent->new;
+               $ua->timeout(6);
+               return $ua;
            });
 
 
