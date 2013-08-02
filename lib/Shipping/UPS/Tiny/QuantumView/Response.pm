@@ -28,7 +28,7 @@ content.
 
 has response => (is => 'ro',
                  trigger => 1,
-                );
+                 required => 1);
 
 sub _trigger_response  {
     my ($self, $value) = @_;
