@@ -5,7 +5,8 @@ use strict;
 use warnings FATAL => 'all';
 use Date::Parse;
 use File::Spec;
-use XML::LibXML::Simple qw/XMLin/;
+use XML::Compile::Schema;
+use File::Spec;
 use POSIX qw/strftime/;
 use Scalar::Util qw/blessed/;
 use Data::Dumper;
@@ -25,72 +26,30 @@ content. It B<must> be set in the constructor.
 
 =cut
 
+has schemadir => (is => 'ro',
+                  required => 1,
+                  isa => sub {
+                      die "$_[0] is not a dir" unless -d $_[0];
+                  });
+
 has response => (is => 'ro',
                  trigger => 1,
                  required => 1);
 
-sub _trigger_response  {
-    my ($self, $value) = @_;
-    # todo: handle undef values, undef content, etc. etc.
+sub parser {
+    my $self = shift;
+    # we don't need to cache this, as every time we parse the xml just once.
+    my @schemas;
+    # load the definitions
+    foreach my $sch ("Error1.1.xsd", "common.xsd", "QuantumViewResponse.xsd") {
+        push @schemas, File::Spec->catfile($self->schemadir, $sch);
+    }
+    my $schema = XML::Compile::Schema->new(\@schemas);
+    return $schema->compile(READER => 'QuantumViewResponse');
+}
 
-    if (blessed($value)) {
-        # it's an LWP object;
-        if ($value->is_success)  {
-            my $parsed;
-            eval {
-                $parsed = XMLin($value->content);
-            };
-            if ($@) {
-                $self->error($@);
-            }
-            elsif (!$parsed) {
-                $self->error("the parsed ref to a scalar returned nothing");
-            }
-            else {
-                $self->_set_parsed_data($parsed);
-            }
-        }
-        else {
-            $self->error($value->status_line);
-        }
-    }
-    else {
-        my $body;
-        if (ref($value) eq 'SCALAR') {
-            $body = $$value;
-        }
-        else {
-            $body = $value;
-        }
-        # we got a reference to the xml body
-        my $parsed;
-        eval {
-            $parsed = XMLin($body);
-        };
-        if ($@) {
-            $self->error($@);
-        }
-        elsif (!$parsed) {
-            $self->error("the parsed ref to a scalar returned nothing");
-        }
-        else {
-            $self->_set_parsed_data($parsed);
-        }
-    }
-    unless ($self->parsed_data) {
-        # we screwed up, so we populate the data with an equivalent fake response
-        $self->_set_parsed_data({
-                                 Response => {
-                                              ResponseStatusCode => 0,
-                                              ResponseStatusDescription => 'Failure',
-                                              Error => {
-                                                        'ErrorDescription' => $self->error,
-                                                        'ErrorCode' => '999999',
-                                                        'ErrorSeverity' => 'Hard'
-                                                       }
-                                             }
-                                });
-    }
+
+sub _trigger_response  {
 }
 
 
@@ -125,7 +84,79 @@ the Response.
 has error => (is => 'rw',
               default => sub { return "" });
 
-has parsed_data => (is => 'rwp');
+has _parsed_data_cache => (is => 'rw');
+
+sub parsed_data {
+    my $self = shift;
+    if ($self->_parsed_data_cache) {
+        return $self->_parsed_data_cache;
+    }
+    # no cache? ok, do the parsing
+    my $value = $self->response;
+    if (blessed($value)) {
+        # it's an LWP object;
+        if ($value->is_success)  {
+            my $parsed;
+            eval {
+                $parsed = $self->parser->($value->content);
+            };
+            if ($@) {
+                $self->error($@);
+            }
+            elsif (!$parsed) {
+                $self->error("the parsed ref to a scalar returned nothing");
+            }
+            else {
+                $self->_parsed_data_cache($parsed);
+            }
+        }
+        else {
+            $self->error($value->status_line);
+        }
+    }
+    else {
+        my $body;
+        if (ref($value) eq 'SCALAR') {
+            $body = $$value;
+        }
+        else {
+            $body = $value;
+        }
+        # we got a reference to the xml body
+        my $parsed;
+        eval {
+            $parsed = $self->parser->($body);
+        };
+        if ($@) {
+            $self->error($@);
+        }
+        elsif (!$parsed) {
+            $self->error("the parsed ref to a scalar returned nothing");
+        }
+        else {
+            $self->_parsed_data_cache($parsed);
+        }
+    }
+    unless ($self->_parsed_data_cache) {
+        # we screwed up, so we populate the data with an equivalent fake response
+        $self->_parsed_data_cache({
+                                   Response => {
+                                                ResponseStatusCode => 0,
+                                                ResponseStatusDescription => 'Failure',
+                                                Error => [
+                                                          {
+                                                           'ErrorDescription' => $self->error,
+                                                           'ErrorCode' => '999999',
+                                                           'ErrorSeverity' => 'Hard'
+                                                          }
+                                                         ]
+                                               }
+                                  });
+    }
+}
+
+
+
 
 sub response_section {
     my $self = shift;
@@ -150,18 +181,24 @@ sub error_desc {
     my $self = shift;
     my $data = $self->response_section;
     return "" unless exists $data->{Error};
-    # flatten the hash.
-    my %error = %{$data->{Error}};
+    # flatten the hash. except that the compiler returns us an array,
+    # because the definition says it's unbound, while the doc says
+    # it's just one. So act accordly.
+    my $error_ref = $data->{Error};
+    print Dumper($error_ref);
+    my @errors = @{$data->{Error}};
     my @out;
-    foreach my $k(keys %error) {
-        my $error_detail;
-        if (ref($error{$k})) {
-            $error_detail = Dumper($error{$k});
+    foreach my $error (@errors) {
+        foreach my $k (keys %$error) {
+            my $error_detail;
+            if (ref($error->{$k})) {
+                $error_detail = Dumper($error->{$k});
+            }
+            else {
+                $error_detail = $error->{$k};
+            }
+            push @out, "$k: " . ($error_detail || "");
         }
-        else {
-            $error_detail = $error{$k};
-        }
-        push @out, "$k: " . ($error_detail || "");
     }
     return join(" ", @out) || "Unparsed error!";
 }
@@ -220,7 +257,7 @@ We get a structure like this inside:
             'Name' => 'OVS'
            }
        ],
-    'SubscriberID' => 'xxxx'
+    'SubscriberID' => 'xxxx' ## this can be ignored, we know who we are
    };
 
 
@@ -554,6 +591,41 @@ sub qv_section {
     }
     else {
         return;
+    }
+}
+
+=head3 qv_events
+
+The event that a user receives echoed Subscriber ID and information
+for subscription event, which is a subset of Tracking information
+specific to either packages coming or packages going, after
+subscription request is made, if the user requests for XML format.
+
+Returns an arrayref with the events.
+
+=head3 qv_events_details
+
+Returns a list of the subscription events' names.
+
+=head3 qv_events_codes
+
+Returns a list of the subscription events' codes.
+
+=head3 qv_events_status
+
+Returns a 
+
+=cut
+
+
+sub qv_events {
+    my $self = shift;
+    my $qv = $self->qv_section;
+    if ($qv and exists $qv->{SubscriptionEvents}) {
+        return $qv->{SubscriptionEvents} || [];
+    }
+    else {
+        return [];
     }
 }
 

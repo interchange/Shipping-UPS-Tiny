@@ -148,7 +148,8 @@ sub fetch {
 
 sub _fetch_unread {
     my $self = shift;
-    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $self->_retrieve);
+    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $self->_retrieve,
+                                                           schemadir => $self->schemadir);
 }
 
 # sub _fetch_unread {
@@ -170,7 +171,9 @@ sub _fetch_range {
     my ($self, $beg, $end) = @_;
     my $res = $self->_retrieve(beg => $beg,
                                end => $end);
-    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $res);
+    return Shipping::UPS::Tiny::QuantumView::Response->new(response => $res,
+                                                           schemadir => $self->schemadir);
+
 }
 
 has debug_request => (is => 'rwp',

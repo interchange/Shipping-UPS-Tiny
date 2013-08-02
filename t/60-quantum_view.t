@@ -25,7 +25,7 @@ unless (-d $schema_dir) {
 
 
 
-plan tests => 19;
+plan tests => 15;
 
 
 
@@ -87,11 +87,6 @@ save_lwp_response($res->response, "days.xml");
 print Dumper($res->parsed_data);
 
 $res = $qv->fetch(unread => 1);
-ok( $res->parsed_data);
-ok($res->is_success);
-ok(!$res->is_failure, "No failure");
-ok(!$res->error_desc, "No error");
-
 save_lwp_response($res->response, "unread.xml");
 
 
