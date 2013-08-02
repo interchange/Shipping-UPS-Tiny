@@ -8,7 +8,7 @@ use Test::More;
 
 # here we need a xml file
 
-my $testfile = catfile(t => 'quantum-data.xml');
+my $testfile = catfile(t => 'quantum-data' => 'unread.xml');
 if (-f $testfile) {
     plan tests => 1;
 }
