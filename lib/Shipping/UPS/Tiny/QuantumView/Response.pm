@@ -10,6 +10,7 @@ use File::Spec;
 use POSIX qw/strftime/;
 use Scalar::Util qw/blessed/;
 use Data::Dumper;
+use Shipping::UPS::Tiny::QuantumView::Manifest;
 use Moo;
 
 =head1 NAME
@@ -207,8 +208,9 @@ sub error_desc {
 
 =head3 qv_section
 
-Returns the main hashref with the actual QV data.
-We get a structure like this inside:
+Returns the main hashref with the actual QV data. The data are splits
+in numbered events, which are accessible via the C<qv_events> accessor.
+
 
   $VAR1 = {
     'SubscriptionEvents' => [
@@ -582,6 +584,16 @@ At full depth, but with arrays cut down:
 
 =cut
 
+sub qv_subscriber_id {
+    my $self = shift;
+    if (my $data = $self->qv_section) {
+        if (exists $data->{SubscriberID} and defined $data->{SubscriberID}) {
+            return $data->{SubscriberID};
+        }
+    }
+    return "";
+}
+
 
 sub qv_section {
     my $self = shift;
@@ -601,32 +613,111 @@ for subscription event, which is a subset of Tracking information
 specific to either packages coming or packages going, after
 subscription request is made, if the user requests for XML format.
 
-Returns an arrayref with the events.
+Returns a list with the events.
 
-=head3 qv_events_details
+Each event has the following structure:
 
-Returns a list of the subscription events' names.
+   { 
+     'Number' => '45BD09FCCEEA27BA',
+     'SubscriptionFile' => [
+                           { 
+                             'StatusType' => 'HASH(0x2951b10)',
+                             'FileName' => '070824_141035001',
+                             'cho_Manifest' => 'ARRAY(0x251c0d8)'
+                           },
+                           { 
+                             'StatusType' => 'HASH(0x293f058)',
+                             'FileName' => '070824_143048001',
+                             'cho_Manifest' => 'ARRAY(0x29253f8)'
+                           },
+                           { 
+                             'StatusType' => 'HASH(0x25cba00)',
+                             'FileName' => '070827_133055001',
+                             'cho_Manifest' => 'ARRAY(0x294e810)'
+                           }
+                         ],
+     'SubscriptionStatus' => {
+                             'Code' => 'A',
+                             'Description' => 'Active'
+                           },
+     'Name' => 'OutboundFull'
+   }
 
-=head3 qv_events_codes
+Name, number, status 
 
-Returns a list of the subscription events' codes.
-
-=head3 qv_events_status
-
-Returns a 
 
 =cut
-
 
 sub qv_events {
     my $self = shift;
     my $qv = $self->qv_section;
     if ($qv and exists $qv->{SubscriptionEvents}) {
-        return $qv->{SubscriptionEvents} || [];
+        die "The events are not an arrayref" unless ref($qv->{SubscriptionEvents}) eq 'ARRAY';
+        return @{$qv->{SubscriptionEvents}};
     }
     else {
-        return [];
+        return;
     }
+}
+
+=head3 qv_manifests
+
+Returns a list of B<all> the manifests from all the events and files.
+
+A manifest represents all data that is relevant for the shipment, such
+as origin, destination, shipper, payment method etc.
+
+Each manifest is a Shipping::UPS::Tiny::QuantumView::Manifest object,
+and holds the coordinates of file/subscription.
+
+=cut
+
+
+sub qv_manifests {
+    my $self = shift;
+    my @events = $self->qv_events;
+    my @manifests;
+    foreach my $event (@events) {
+        # these are mandatory fields, reading the doc
+        my %sub_details = (
+                           subscription_number => $event->{Number},
+                           subscription_name => $event->{Name},
+                           subscription_status => $event->{SubscriptionStatus}->{Code},
+                           # not mandatory, but hey...
+                           subscription_status_desc => $event->{SubscriptionStatus}->{Description} || "",
+                           );
+
+        # now scan the files
+        if (my $files = $event->{SubscriptionFile}) {
+            foreach my $file (@$files) {
+                my %file_details = (
+                                    # mandatory fields, p.43 of the doc
+                                    file_status_desc => $file->{StatusType}->{Description},
+                                    file_status => $file->{StatusType}->{Code},
+                                    file_name => $file->{FileName},
+                                   );
+
+                # now finally reach the data, hoping that we get the right key.
+                my $blocks = $file->{cho_Manifest};
+                unless ($blocks) {
+                    die "couldn't find the cho_Manifest" . Dumper($file);
+                };
+                # well, we're not really there yet
+                foreach my $block (@$blocks) {
+                    if (exists $block->{Manifest}) {
+                        foreach my $manifest (@{$block->{Manifest}}) {
+                            # reached
+                            my $class = "Shipping::UPS::Tiny::QuantumView::Manifest";
+                            push @manifests, $class->new(data => $manifest,
+                                                         %file_details,
+                                                         %sub_details);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return @manifests;
 }
 
 =head3 bookmark

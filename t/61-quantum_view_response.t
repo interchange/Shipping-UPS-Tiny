@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 32;
+    plan tests => 44;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -41,7 +41,8 @@ foreach (qw/unread failure days/) {
     $testfiles{$_} = catfile(t => 'quantum-data', $_ . '.xml');
 }
 
-fix_bogus_data($testfiles{unread});
+# fix and pick the right file
+$testfiles{unread} = fix_bogus_data($testfiles{unread});
 
 foreach my $t (keys %testfiles) {
     my $filename = $testfiles{$t};
@@ -98,17 +99,37 @@ ok($qvr->is_success, "It's a success");
 ok(!$qvr->error_desc, "No error");
 ok($qvr->qv_section, "QV section found");
 ok($qvr->response_section, "Response is there");
+ok($qvr->qv_subscriber_id, "Got a subscriber id: " . $qvr->qv_subscriber_id);
+
+my @manifests = $qvr->qv_manifests;
+
+ok(@manifests, "Got " . scalar(@manifests) . " manifests");
+my $manifest = shift @manifests;
+
+foreach (qw/subscription_number subscription_name subscription_status
+           subscription_status_desc file_status_desc file_status
+           file_name/) {
+    ok($manifest->$_, "Got $_: " . $manifest->$_);
+}
+
 
 my $samplefile = catfile ("t", "QuantumView", "QuantumViewforPackage",
                           "QUANTUMVIEWXML", "Sample Requests and Responses",
                           "QuantumView_Tool_SampleResponse.xml");
 
+
+
+
 if (-f $samplefile) {
     $qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $samplefile,
                                                            schemadir => $schemadir);
-    ok($qvr->is_success);
-    $dumper = Data::Dumper->new([$qvr->qv_events]);
-    print $dumper->Dump;
+    ok($qvr->is_success, "is success");
+    ok($qvr->qv_subscriber_id, "Got a subscriber id: " . $qvr->qv_subscriber_id);
+    ok(!$qvr->is_failure, "No failure");
+    ok(!$qvr->error, "No error");
+    $dumper = Data::Dumper->new([[$qvr->qv_events]]);
+    $dumper->Maxdepth(6);
+    # print $dumper->Dump;
 }
 
 
@@ -119,5 +140,13 @@ sub fix_bogus_data {
     my $text = read_file($file);
     $text =~ s{(<Manifest>)\s*(<Shipper>)\s*(<Address>)\s*(<ConsigneeName>(.*?)</ConsigneeName>)}{$1$2<Name>$4</Name>$3}gs;
     $text =~ s{<DeliveryLocation>\s*<Code>.*?</DeliveryLocation>}{}gs;
+    $file =~ s/unread\.xml$/unread-good.xml/;
     write_file($file, $text);
+    return $file;
 }
+
+
+
+print Dumper();
+
+
