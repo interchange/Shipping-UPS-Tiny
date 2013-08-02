@@ -81,5 +81,9 @@ print Dumper($res->parsed_data);
 $res = $qv->fetch(unread => 1);
 ok( $res->parsed_data);
 ok($res->is_success);
-print Dumper([ keys %{$res->parsed_data} ]);
+
+open (my $fh, ">", catfile(t => 'quantum-data.xml')) or die $!;
+print $fh $res->response->content;
+close $fh;
+
 
