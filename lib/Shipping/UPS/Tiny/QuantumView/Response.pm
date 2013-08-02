@@ -11,6 +11,8 @@ use POSIX qw/strftime/;
 use Scalar::Util qw/blessed/;
 use Data::Dumper;
 use Shipping::UPS::Tiny::QuantumView::Manifest;
+use Shipping::UPS::Tiny::QuantumView::Delivery;
+use Shipping::UPS::Tiny::QuantumView::Exception;
 use Moo;
 
 =head1 NAME
@@ -672,9 +674,26 @@ and holds the coordinates of file/subscription.
 
 =cut
 
+sub qv_exceptions {
+    my $self = shift;
+    return $self->_get_deep_data('Exception');
+}
 
 sub qv_manifests {
     my $self = shift;
+    return $self->_get_deep_data('Manifest');
+}
+
+sub qv_deliveries {
+    my $self = shift;
+    return $self->_get_deep_data('Delivery');
+}
+
+
+sub _get_deep_data {
+    my $self = shift;
+    my $target = shift;
+    return unless $target;
     my @events = $self->qv_events;
     my @manifests;
     foreach my $event (@events) {
@@ -704,10 +723,10 @@ sub qv_manifests {
                 };
                 # well, we're not really there yet
                 foreach my $block (@$blocks) {
-                    if (exists $block->{Manifest}) {
-                        foreach my $manifest (@{$block->{Manifest}}) {
+                    if (exists $block->{$target}) {
+                        foreach my $manifest (@{$block->{$target}}) {
                             # reached
-                            my $class = "Shipping::UPS::Tiny::QuantumView::Manifest";
+                            my $class = "Shipping::UPS::Tiny::QuantumView::$target";
                             push @manifests, $class->new(data => $manifest,
                                                          %file_details,
                                                          %sub_details);

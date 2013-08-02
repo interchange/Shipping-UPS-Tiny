@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 44;
+    plan tests => 81;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -101,16 +101,11 @@ ok($qvr->qv_section, "QV section found");
 ok($qvr->response_section, "Response is there");
 ok($qvr->qv_subscriber_id, "Got a subscriber id: " . $qvr->qv_subscriber_id);
 
-my @manifests = $qvr->qv_manifests;
+test_manifests(manifests => $qvr->qv_manifests);
+test_manifests(deliveries => $qvr->qv_deliveries);
+test_manifests(exceptions => $qvr->qv_exceptions);
 
-ok(@manifests, "Got " . scalar(@manifests) . " manifests");
-my $manifest = shift @manifests;
 
-foreach (qw/subscription_number subscription_name subscription_status
-           subscription_status_desc file_status_desc file_status
-           file_name/) {
-    ok($manifest->$_, "Got $_: " . $manifest->$_);
-}
 
 
 my $samplefile = catfile ("t", "QuantumView", "QuantumViewforPackage",
@@ -129,6 +124,10 @@ if (-f $samplefile) {
     ok(!$qvr->error, "No error");
     $dumper = Data::Dumper->new([[$qvr->qv_events]]);
     $dumper->Maxdepth(6);
+    test_manifests(manifests => $qvr->qv_manifests);
+    test_manifests(exceptions => $qvr->qv_exceptions);
+
+
     # print $dumper->Dump;
 }
 
@@ -146,7 +145,15 @@ sub fix_bogus_data {
 }
 
 
+sub test_manifests {
+    my ($type, @manifests) = @_;
+    ok(@manifests, "Got " . scalar(@manifests) . " $type");
+    my $manifest = shift @manifests;
 
-print Dumper();
-
-
+    foreach (qw/subscription_number subscription_name subscription_status
+                subscription_status_desc file_status_desc file_status
+                file_name/) {
+        ok($manifest->$_, "$type: Got $_: " . $manifest->$_);
+    }
+    ok $manifest->data, "$type: Found: " . Dumper($manifest->data);
+}
