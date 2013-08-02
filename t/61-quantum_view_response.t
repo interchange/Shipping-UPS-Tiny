@@ -11,7 +11,7 @@ use Test::More;
 
 my $testfile = catfile(t => 'quantum-data' => 'unread.xml');
 if (-f $testfile) {
-    plan tests => 13;
+    plan tests => 25;
 }
 else {
     plan skip_all => 'No xml file found for testing!. It should be produced by the 60-quantum_view.t testfile';
@@ -40,6 +40,7 @@ foreach my $t (keys %testfiles) {
 }
 
 
+my $dumper;
 diag "Testing the failure";
 my $qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{failure});
 ok(!$qvr->bookmark, "No bookmark found");
@@ -49,11 +50,35 @@ ok($qvr->error_desc, "Error: " . $qvr->error_desc);
 ok(!$qvr->qv_section, "No QV section found");
 ok($qvr->response_section, "But response is there");
 
+$dumper = Data::Dumper->new([$qvr->qv_section]);
+$dumper->Maxdepth(1);
+print $dumper->Dump;
+
+
+diag "Testing the days";
+$qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{days});
+ok(!$qvr->bookmark, "No bookmark found");
+ok(!$qvr->is_failure, "It's not a failure");
+ok($qvr->is_success, "It's a success");
+ok(!$qvr->error_desc, "Error: " . $qvr->error_desc);
+ok(!$qvr->qv_section, "But no QV section found (thanks ups)");
+ok($qvr->response_section, "Response is there");
+
+$dumper = Data::Dumper->new([$qvr->qv_section]);
+$dumper->Maxdepth(1);
+print $dumper->Dump;
+
+diag "Testing unread";
+$qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{unread});
+ok(!$qvr->bookmark, "No bookmark found");
+ok(!$qvr->is_failure, "It's not a failure");
+ok($qvr->is_success, "It's a success");
+ok(!$qvr->error_desc, "No error");
+ok($qvr->qv_section, "QV section found");
+ok($qvr->response_section, "Response is there");
 
 
 
-
-
-
-
-
+$dumper = Data::Dumper->new([$qvr->qv_section]);
+$dumper->Maxdepth(5);
+print $dumper->Dump;
