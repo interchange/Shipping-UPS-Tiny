@@ -5,7 +5,7 @@ use strict;
 use warnings FATAL => 'all';
 use Date::Parse;
 use File::Spec;
-use XML::LibXML::Simple;
+use XML::LibXML::Simple qw/XMLin/;
 use POSIX qw/strftime/;
 use Scalar::Util qw/blessed/;
 use Moo;
@@ -35,26 +35,67 @@ sub _trigger_response  {
     # todo: handle undef values, undef content, etc. etc.
 
     if (blessed($value)) {
-        # it's an object
-        $self->_set_parsed_data($self->parser->XMLin($value->content));
-    }
-    elsif (ref($value) eq 'SCALAR') {
-        $self->_set_parsed_data($self->parser->XMLin($$value));
+        # it's an LWP object;
+        if ($value->is_success)  {
+            my $parsed;
+            eval {
+                $parsed = XMLin($value->content);
+            };
+            if ($@) {
+                $self->error($@);
+            }
+            elsif (!$parsed) {
+                $self->error("the parsed ref to a scalar returned nothing");
+            }
+            else {
+                $self->_set_parsed_data($parsed);
+            }
+        }
+        else {
+            $self->error($value->status_line);
+        }
     }
     else {
-        # Simple accepts filenames
-        $self->_set_parsed_data($self->parser->XMLin($value));
+        my $body;
+        if (ref($value) eq 'SCALAR') {
+            $body = $$value;
+        }
+        else {
+            $body = $value;
+        }
+        # we got a reference to the xml body
+        my $parsed;
+        eval {
+            $parsed = XMLin($body);
+        };
+        if ($@) {
+            $self->error($@);
+        }
+        elsif (!$parsed) {
+            $self->error("the parsed ref to a scalar returned nothing");
+        }
+        else {
+            $self->_set_parsed_data($parsed);
+        }
     }
     unless ($self->parsed_data) {
-        # we screwed up, we could fill this up with an error.
-        $self->_set_parsed_data({});
+        # we screwed up, so we populate the data with an equivalent fake response
+        $self->_set_parsed_data({
+                                 Response => {
+                                              ResponseStatusCode => 0,
+                                              ResponseStatusDescription => 'Failure',
+                                              Error => {
+                                                        'ErrorDescription' => $self->error,
+                                                        'ErrorCode' => '999999',
+                                                        'ErrorSeverity' => 'Hard'
+                                                       }
+                                             }
+                                });
     }
 }
 
-has parser => (is => 'ro',
-               default => sub {
-                   return XML::LibXML::Simple->new;
-               });
+has error => (is => 'rw',
+              default => sub { return "" });
 
 has parsed_data => (is => 'rwp');
 
@@ -65,7 +106,30 @@ sub response_section {
 
 sub is_success {
     my $self = shift;
+    # response status code is guaranteed to be present
     return $self->response_section->{ResponseStatusCode};
 }
+
+sub is_failure {
+    my $self = shift;
+    if ($self->is_success) {
+        return;
+    }
+    return $self->response_section->{ResponseStatusDescription};
+}
+
+sub error_desc {
+    my $self = shift;
+    my $data = $self->response_section;
+    return "" unless exists $data->{Error};
+    # flatten the hash.
+    my %error = %{$data->{Error}};
+    my $out;
+    foreach my $k(keys %error) {
+        $out .= "$k: " . $error{$k} . "\n";
+    }
+    return $out || "Unparsed error!";
+}
+
 
 1;

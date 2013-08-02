@@ -25,7 +25,7 @@ unless (-d $schema_dir) {
 
 
 
-plan tests => 13;
+plan tests => 19;
 
 
 
@@ -72,18 +72,25 @@ my $res = $qv->fetch(begin => '2013-07-01',
 
 ok ($res->parsed_data, "request Ok for range");
 ok (!$res->is_success, "Not ok, range is off");
+ok ($res->is_failure, "Got failure: " . $res->error_desc);
+ok ($res->error_desc);
 save_lwp_response($res->response, "failure.xml");
 print Dumper($res->parsed_data);
 
 $res = $qv->fetch(days => 7);
 ok ($res->parsed_data, "request Ok for 7 days");
 ok($res->is_success, "Ok, we got something");
+ok(!$res->is_failure, "No failure");
+ok(!$res->error_desc, "No error");
+
 save_lwp_response($res->response, "days.xml");
 print Dumper($res->parsed_data);
 
 $res = $qv->fetch(unread => 1);
 ok( $res->parsed_data);
 ok($res->is_success);
+ok(!$res->is_failure, "No failure");
+ok(!$res->error_desc, "No error");
 
 save_lwp_response($res->response, "unread.xml");
 
