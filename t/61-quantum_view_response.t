@@ -11,7 +11,7 @@ use Test::More;
 
 my $testfile = catfile(t => 'quantum-data' => 'unread.xml');
 if (-f $testfile) {
-    plan tests => 7;
+    plan tests => 13;
 }
 else {
     plan skip_all => 'No xml file found for testing!. It should be produced by the 60-quantum_view.t testfile';
@@ -38,3 +38,22 @@ foreach my $t (keys %testfiles) {
     $obj = Shipping::UPS::Tiny::QuantumView::Response->new(response => \$xmlbody);
     ok($obj->response_section, "Got parsed data with ref scalar from $filename");
 }
+
+
+diag "Testing the failure";
+my $qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{failure});
+ok(!$qvr->bookmark, "No bookmark found");
+ok($qvr->is_failure, "It's a failure");
+ok(!$qvr->is_success, "It's not a success");
+ok($qvr->error_desc, "Error: " . $qvr->error_desc);
+ok(!$qvr->qv_section, "No QV section found");
+ok($qvr->response_section, "But response is there");
+
+
+
+
+
+
+
+
+
