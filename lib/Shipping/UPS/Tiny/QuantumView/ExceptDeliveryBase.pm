@@ -52,7 +52,7 @@ sub datetime {
                                            $self->_unrolled_details("Time"));
 }
 
-=item location
+=item activity_location
 
 Location of the the activity (if any).
 

@@ -114,4 +114,32 @@ sub activities_datetime {
     return @list;
 }
 
+=item ship_to_as_string
+
+Returns a string with the consegnee address.
+
+=cut
+
+sub ship_to_as_string {
+    my $self = shift;
+    # guaranteed to be present
+    my $data = $self->ship_to;
+    my @address;
+    foreach my $k (qw/CompanyName AttentionName PhoneNumber EMailAddress LocationID/) {
+        if (exists $data->{$k} and defined $data->{$k}) {
+            push @address, $data->{$k};
+        }
+    }
+    if (exists $data->{Address}) {
+        foreach my $k (qw/ConsigneeName AddressLine1 AddressLine2 AddressLine3
+                          PostalCode City StateProvinceCode CountryCode/) {
+            if (exists $data->{Address}->{$k} and defined $data->{Address}->{$k}) {
+                push @address, $data->{Address}->{$k};
+            }
+        }
+    }
+    return join (" ", @address);
+}
+
+
 1;

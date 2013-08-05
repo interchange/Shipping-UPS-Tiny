@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 157;
+    plan tests => 159;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -190,9 +190,9 @@ sub test_manifests {
 
     if ($type eq 'manifests') {
         ok($manifest->shipper,
-           "$prefix: Found shipper: " . Dumper($manifest->shipper));
+           "$prefix: Found shipper, it's ourselves");
         ok($manifest->ship_to,
-           "$prefix: Found ship to: " . Dumper($manifest->ship_to));
+           "$prefix: Found ship to in the manifest");
 
         # please note that the test files are missing a desc and that
         # the code is illegal, as per doc...
@@ -215,6 +215,7 @@ sub test_manifests {
                                      reference_numbers
                                      activities_datetime
                                      scheduled_delivery_date
+                                     ship_to_as_string
                                      source/) {
                 ok((defined $pack->$accessor),
                    "$prefix package: $accessor: " . join(" ", $pack->$accessor));
