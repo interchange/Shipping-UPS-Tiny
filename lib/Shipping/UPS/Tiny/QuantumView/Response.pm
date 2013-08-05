@@ -13,6 +13,7 @@ use Data::Dumper;
 use Shipping::UPS::Tiny::QuantumView::Manifest;
 use Shipping::UPS::Tiny::QuantumView::Delivery;
 use Shipping::UPS::Tiny::QuantumView::Exception;
+use Shipping::UPS::Tiny::QuantumView::Origin;
 use Moo;
 
 =head1 NAME
@@ -36,7 +37,6 @@ has schemadir => (is => 'ro',
                   });
 
 has response => (is => 'ro',
-                 trigger => 1,
                  required => 1);
 
 sub parser {
@@ -49,10 +49,6 @@ sub parser {
     }
     my $schema = XML::Compile::Schema->new(\@schemas);
     return $schema->compile(READER => 'QuantumViewResponse');
-}
-
-
-sub _trigger_response  {
 }
 
 
@@ -433,6 +429,10 @@ sub qv_deliveries {
     return $self->_get_deep_data('Delivery');
 }
 
+sub qv_origin {
+    my $self = shift;
+    return $self->_get_deep_data('Origin');
+}
 
 sub _get_deep_data {
     my $self = shift;

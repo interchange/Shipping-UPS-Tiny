@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 118;
+    plan tests => 136;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -99,6 +99,7 @@ print $dumper->Dump;
 test_manifests(manifests => devserver  => $qvr->qv_manifests);
 test_manifests(deliveries => devserver => $qvr->qv_deliveries);
 test_manifests(exceptions => devserver => $qvr->qv_exceptions);
+test_manifests(origin => testfile => $qvr->qv_origin);
 
 my $samplefile = catfile ("t", "QuantumView", "QuantumViewforPackage",
                           "QUANTUMVIEWXML", "Sample Requests and Responses",
@@ -118,7 +119,7 @@ if (-f $samplefile) {
     $dumper->Maxdepth(6);
     test_manifests(manifests => testfile => $qvr->qv_manifests);
     test_manifests(exceptions => testfile => $qvr->qv_exceptions);
-
+    test_manifests(origin => testfile => $qvr->qv_origin);
 
     # print $dumper->Dump;
 }
