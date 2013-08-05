@@ -5,6 +5,7 @@ use strict;
 use warnings FATAL => 'all';
 use Date::Parse;
 use File::Spec;
+use File::Path qw/mkpath/;
 use XML::Compile::Schema;
 use XML::LibXML;
 use LWP::UserAgent;
@@ -57,6 +58,14 @@ The directory in which the XML schema files can be found. Mandatory.
 The named subscription. This is a read-write accessor, so you can set
 it after the object has been built.
 
+=item xml_save_directory
+
+If set, the LWP request will save the content to a file in this directory.
+
+=item xml_path
+
+The path to the last saved file.
+
 =back
 
 =cut
@@ -80,6 +89,20 @@ has schemadir => (is => 'ro',
                   required => 1);
 
 has subscription_name => (is => 'rw');
+
+has xml_save_directory => (is => 'rw',
+                           isa => sub {
+                               my $dir = $_[0];
+                               if ((-e $dir) and (! -d $dir)) {
+                                   die "$_[0] exists and is not a dir"
+                               }
+                           });
+
+has xml_path => (is => 'rw',
+                 isa => sub {
+                     die "Non existent file $_[0]" unless -f $_[0];
+                 });
+
 
 =head1 METHODS
 
@@ -196,7 +219,23 @@ sub _retrieve {
     my $req = HTTP::Request->new(POST => $self->endpoint);
     $req->content($xml);
     $self->_set_debug_request($xml);
-    return $self->ua->request($req);
+    my $res = $self->ua->request($req);
+    if (my $savedir = $self->xml_save_directory) {
+        mkpath($savedir);
+        my $filename;
+        my $counter = 0;
+        do {
+            $filename = File::Spec->catfile($savedir, "qv-" . strftime('%Y-%m-%d-%H-%M-%S', localtime(time())) . "-$counter.xml");
+            $counter++;
+        } while (-f $filename);
+
+        open (my $fh, ">", $filename)
+          or die "Couldn't open $filename: $!\n" . $res->content . "\n";
+        print $fh $res->content;
+        close $fh;
+        $self->xml_path($filename);
+    }
+    return $res;
 }
 
 =head2 The request
