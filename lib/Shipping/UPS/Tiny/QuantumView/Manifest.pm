@@ -53,17 +53,7 @@ The field is not mandatory, so an empty list may be returned.
 
 sub reference_numbers {
     my $self = shift;
-    my $arrayref = $self->_unrolled_details("ReferenceNumber");
-    return unless $arrayref;
-    unless (ref($arrayref) eq 'ARRAY') {
-        die "Unexpected type of data for ref number: " . ref($arrayref);
-    }
-    my @nums;
-    foreach my $refnums (@$arrayref) {
-        # we don't care about the type, we defined it
-        push @nums, $refnums->{Value};
-    }
-    return @nums;
+    return $self->_get_ref_nums();
 }
 
 =item service_code

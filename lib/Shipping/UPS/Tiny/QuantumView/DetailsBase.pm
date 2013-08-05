@@ -96,6 +96,25 @@ sub _ups_time_to_iso_8601_time {
     }
 }
 
+sub _ups_datetime_to_iso8601 {
+    my ($self, $date, $time) = @_;
+    $date = $self->_ups_date_to_iso_8601_date($date);
+    $time = $self->_ups_time_to_iso_8601_time($time || "n/a");
+    return join(" ", $date, $time);
+}
+
+sub _get_ref_nums {
+    my $self = shift;
+    my $refs = $self->_unrolled_details("ReferenceNumber");
+    my @list;
+    if ($refs) {
+        foreach my $ref (@$refs) {
+            push @list, $ref->{Value};
+        }
+    }
+    # if not present, we try to return the parent data.
+    return @list;
+}
 
 1;
 

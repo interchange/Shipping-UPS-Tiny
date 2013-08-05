@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 136;
+    plan tests => 150;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -151,7 +151,30 @@ sub test_manifests {
                 file_name/) {
         ok($manifest->$_, "$prefix: Got $_: " . $manifest->$_);
     }
-    ok $manifest->data, "$prefix: Found: " . Dumper($manifest->data);
+    ok $manifest->data, "$prefix: Found data";
+
+    if ($type eq 'deliveries') {
+        
+    }
+
+    if ($type eq 'exceptions') {
+        print Dumper($manifest->data);
+        is($manifest->source, "exception");
+        ok($manifest->tracking_number,
+           "$prefix Tracking number: " . $manifest->tracking_number);
+        ok($manifest->exception_datetime,
+           "$prefix Exception Datetime: " . $manifest->exception_datetime);
+        ok(defined $manifest->location, "$prefix location: " . $manifest->location);
+        ok(defined $manifest->description, "$prefix desc: " . $manifest->description);
+        ok(defined $manifest->resolution, "$prefix resolution: " . $manifest->resolution);
+        ok(defined $manifest->rescheduled_date,
+           "$prefix reschedule: " . $manifest->rescheduled_date);
+    }
+
+    if ($type eq 'origin') {
+        print Dumper($manifest->data);
+    }
+
     if ($type eq 'manifests') {
         ok($manifest->shipper,
            "$prefix: Found shipper: " . Dumper($manifest->shipper));

@@ -71,14 +71,7 @@ sub tracking_number {
 
 sub reference_numbers {
     my $self = shift;
-    my $refs = $self->_unrolled_details("ReferenceNumber");
-    my @list;
-    if ($refs) {
-        foreach my $ref (@$refs) {
-            push @list, $ref->{Value};
-        }
-    }
-    # if not present, we try to return the parent data.
+    my @list = $self->_get_ref_nums();
     unless (@list) {
         @list = @{ $self->manifest_reference_numbers };
     }
