@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 81;
+    plan tests => 118;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -70,11 +70,6 @@ ok($qvr->error_desc, "Error: " . $qvr->error_desc);
 ok(!$qvr->qv_section, "No QV section found");
 ok($qvr->response_section, "But response is there");
 
-$dumper = Data::Dumper->new([$qvr->qv_section]);
-$dumper->Maxdepth(1);
-print $dumper->Dump;
-
-
 diag "Testing the days";
 $qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{days},
                                                        schemadir => $schemadir);
@@ -85,10 +80,6 @@ ok($qvr->is_success, "It's a success");
 ok(!$qvr->error_desc, "Error: " . $qvr->error_desc);
 ok(!$qvr->qv_section, "But no QV section found (thanks ups)");
 ok($qvr->response_section, "Response is there");
-
-$dumper = Data::Dumper->new([$qvr->qv_section]);
-$dumper->Maxdepth(1);
-print $dumper->Dump;
 
 diag "Testing unread";
 $qvr = Shipping::UPS::Tiny::QuantumView::Response->new(response => $testfiles{unread},
@@ -101,12 +92,13 @@ ok($qvr->qv_section, "QV section found");
 ok($qvr->response_section, "Response is there");
 ok($qvr->qv_subscriber_id, "Got a subscriber id: " . $qvr->qv_subscriber_id);
 
-test_manifests(manifests => $qvr->qv_manifests);
-test_manifests(deliveries => $qvr->qv_deliveries);
-test_manifests(exceptions => $qvr->qv_exceptions);
+$dumper = Data::Dumper->new([$qvr->qv_section]);
+$dumper->Maxdepth(8);
+print $dumper->Dump;
 
-
-
+test_manifests(manifests => devserver  => $qvr->qv_manifests);
+test_manifests(deliveries => devserver => $qvr->qv_deliveries);
+test_manifests(exceptions => devserver => $qvr->qv_exceptions);
 
 my $samplefile = catfile ("t", "QuantumView", "QuantumViewforPackage",
                           "QUANTUMVIEWXML", "Sample Requests and Responses",
@@ -124,8 +116,8 @@ if (-f $samplefile) {
     ok(!$qvr->error, "No error");
     $dumper = Data::Dumper->new([[$qvr->qv_events]]);
     $dumper->Maxdepth(6);
-    test_manifests(manifests => $qvr->qv_manifests);
-    test_manifests(exceptions => $qvr->qv_exceptions);
+    test_manifests(manifests => testfile => $qvr->qv_manifests);
+    test_manifests(exceptions => testfile => $qvr->qv_exceptions);
 
 
     # print $dumper->Dump;
@@ -146,14 +138,58 @@ sub fix_bogus_data {
 
 
 sub test_manifests {
-    my ($type, @manifests) = @_;
-    ok(@manifests, "Got " . scalar(@manifests) . " $type");
+    my ($type, $name, @manifests) = @_;
+    my $prefix = "$type/$name";
+    ok(@manifests, "Got " . scalar(@manifests) . " $prefix");
+
+    # test only the first one
     my $manifest = shift @manifests;
 
     foreach (qw/subscription_number subscription_name subscription_status
                 subscription_status_desc file_status_desc file_status
                 file_name/) {
-        ok($manifest->$_, "$type: Got $_: " . $manifest->$_);
+        ok($manifest->$_, "$prefix: Got $_: " . $manifest->$_);
     }
-    ok $manifest->data, "$type: Found: " . Dumper($manifest->data);
+    ok $manifest->data, "$prefix: Found: " . Dumper($manifest->data);
+    if ($type eq 'manifests') {
+        ok($manifest->shipper,
+           "$prefix: Found shipper: " . Dumper($manifest->shipper));
+        ok($manifest->ship_to,
+           "$prefix: Found ship to: " . Dumper($manifest->ship_to));
+
+        # please note that the test files are missing a desc and that
+        # the code is illegal, as per doc...
+        ok($manifest->service_code,
+           "$prefix: Found service code: " . $manifest->service_code);
+
+        ok($manifest->pickup_date,
+           "$prefix: Found pickup date: " . $manifest->pickup_date);
+
+        # of course the test things don't have the delivery time
+        # ok($manifest->scheduled_delivery_time,
+        # "$prefix: Found scheduled delivery time"
+        my @packages = $manifest->packages;
+        foreach my $pack (@packages) {
+            foreach my $accessor (qw/subscription_number
+                                     subscription_name subscription_status
+                                     subscription_status_desc file_status_desc file_name
+                                     service_code pickup_date
+                                     tracking_number
+                                     reference_numbers
+                                     activities_datetime
+                                     scheduled_delivery_date
+                                     source/) {
+                ok((defined $pack->$accessor),
+                   "$prefix package: $accessor: " . join(" ", $pack->$accessor));
+            }
+            ok($pack->data, "Found the package data: " . Dumper($pack->data));
+        }
+
+
+        if ($name eq 'testfile') {
+            ok(scalar($manifest->reference_numbers),
+               "$prefix: Found reference numbers " .
+               Dumper($manifest->reference_numbers));
+        }
+    }
 }
