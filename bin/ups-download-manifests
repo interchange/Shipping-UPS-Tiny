@@ -1,0 +1,150 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use Getopt::Long;
+use YAML qw/LoadFile Dump/;
+use Shipping::UPS::Tiny::QuantumView;
+use Shipping::UPS::Tiny::QuantumView::Response;
+use File::Slurp;
+use DBI;
+
+
+my $conf;
+my $verbose;
+my $help;
+GetOptions ("conf=s" => \$conf,
+            help => \$help,
+            verbose => \$verbose);
+
+if ($help) {
+    give_help();
+    exit;
+}
+
+# read the conf
+
+unless ($conf and (-f $conf)) {
+    die "Missing configuration file!";
+}
+my $account = LoadFile($conf);
+vprint("Using these credentials: " . Dump($account));
+
+my $qv = Shipping::UPS::Tiny::QuantumView->new(%$account);
+vprint("Using endpoint " . $qv->endpoint);
+my $res = $qv->fetch(unread => 1);
+my $file = $qv->xml_path;
+
+# This is ugly, but can't be helped and it's waiting for real data
+# from the live server to be properly tested & fixed
+
+if ($qv->endpoint eq 'https://wwwcie.ups.com/ups.app/xml/QVEvents') {
+    print "Using the development server!: it's sending bogus data, trying to fix it\n";
+    $file = fix_bogus_data($file);
+    print "Using $file as response!\n";
+    $res = Shipping::UPS::Tiny::QuantumView::Response->new (response => $file,
+                                                            schemadir => $qv->schemadir);
+}
+
+unless ($res->is_success) {
+    die $res->error;
+}
+
+foreach my $manifest ($res->qv_manifests) {
+    # we wants the packages
+    foreach my $pack ($manifest->packages) {
+        # get the common files
+        print (join " ", get_common($pack));
+        print $pack->scheduled_delivery_date, "\n";
+        print $pack->ship_to_as_string, "\n";
+        print $pack->pickup_date, "\n";
+        print $pack->service_code, "\n";
+        print join(" ", $pack->activities_datetime), "\n";
+    }
+}
+
+foreach my $exc ($res->qv_exceptions) {
+    print (join " ", get_common($exc));
+    print $exc->rescheduled_date, "\n";
+    print $exc->resolution, "\n";
+    print $exc->updated_address, "\n";
+    print $exc->activity_location, "\n";
+    print $exc->description, "\n";
+}
+
+foreach my $del ($res->qv_deliveries) {
+    print (join " ", get_common($del));
+    print $del->delivery_location_address_as_string, "\n";
+    print $del->datetime, "\n";
+    print $del->signed_by, "\n";
+    print $del->delivery_location, "\n";
+}
+
+
+# we got the response, now loop over, manifests, exceptions and deliveries
+
+
+
+
+
+
+sub give_help {
+    print <<'HELPME';
+This script will download the UPS QuantumView data and save them to a database table.
+
+Options:
+
+  --conf <configuration file>
+    Mandatory. Path to the configuration file.
+
+  --verbose
+    Be verbose.
+
+  --help
+    Print this help
+
+The configuration file should be YAML formatted and should have the
+following settings:
+
+xml_save_directory: "/path/to/the/directory"
+schemadir: "/path/to/the/ups/schemas"
+username: "username"
+password: "P4zzWord"
+endpoint: "https://onlinetools.ups.com/ups.app/xml/QVEvents"
+account_key: "MyPreciousUPSkey"
+subscription_name: "ExceptionandDeliver"
+
+HELPME
+}
+
+sub vprint {
+    if ($verbose) {
+        print @_, "\n";
+    }
+}
+
+sub fix_bogus_data {
+    my $file = shift;
+    my $text = read_file($file);
+    $text =~ s{(<Manifest>)\s*(<Shipper>)\s*(<Address>)\s*(<ConsigneeName>(.*?)</ConsigneeName>)}{$1$2<Name>$5</Name>$3}gs;
+    $text =~ s{(<DeliveryLocation>\s*)(<Code>.*?</DeliveryLocation>)}{$1<AddressArtifactFormat />$2}gs;
+    $file =~ s/\.xml$/-fixed.xml/;
+    write_file($file, $text);
+    return $file;
+}
+
+sub get_common {
+    my $obj = shift;
+    my %common;
+    foreach my $acc (qw/subscription_number subscription_name subscription_status
+                        subscription_status_desc file_status_desc
+                        tracking_number
+                        file_status file_name source/) {
+        $common{$acc} = $obj->$acc;
+    }
+    if (my @nums = $obj->reference_numbers) {
+        $common{reference_number} = shift(@nums);
+    }
+    return %common;
+}
