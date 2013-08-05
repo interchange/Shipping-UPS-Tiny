@@ -17,7 +17,7 @@ my $schemadir = catdir(qw/t QuantumView QuantumViewforPackage
 diag "Schema is in $schemadir";
 
 if (-f $testfile && -d $schemadir) {
-    plan tests => 150;
+    plan tests => 154;
 }
 elsif (! -d $schemadir) {
     plan skip_all => "No schema directory found in $schemadir";
@@ -154,7 +154,13 @@ sub test_manifests {
     ok $manifest->data, "$prefix: Found data";
 
     if ($type eq 'deliveries') {
-        
+        is($manifest->source, "delivery");
+        ok($manifest->tracking_number,
+           "$prefix Tracking number: " . $manifest->tracking_number);
+        ok($manifest->delivery_datetime,
+           "$prefix delivery dt: " . $manifest->delivery_datetime);
+        ok(defined $manifest->activity_location,
+           "$prefix location: " . $manifest->activity_location);
     }
 
     if ($type eq 'exceptions') {
@@ -164,7 +170,8 @@ sub test_manifests {
            "$prefix Tracking number: " . $manifest->tracking_number);
         ok($manifest->exception_datetime,
            "$prefix Exception Datetime: " . $manifest->exception_datetime);
-        ok(defined $manifest->location, "$prefix location: " . $manifest->location);
+        ok(defined $manifest->activity_location,
+           "$prefix location: " . $manifest->activity_location);
         ok(defined $manifest->description, "$prefix desc: " . $manifest->description);
         ok(defined $manifest->resolution, "$prefix resolution: " . $manifest->resolution);
         ok(defined $manifest->rescheduled_date,

@@ -5,23 +5,13 @@ use warnings FATAL => 'all';
 use Data::Dumper;
 use Moo;
 
-extends 'Shipping::UPS::Tiny::QuantumView::DetailsBase';
+extends 'Shipping::UPS::Tiny::QuantumView::ExceptDeliveryBase';
 
 =head1 NAME Shipping::UPS::Tiny::QuantumView::Exception
 
 Subclass of L<Shipping::UPS::Tiny::QuantumView::DetailsBase>
 
 =head1 ACCESSORS
-
-=item tracking_number
-
-The tracking number of the package. It's guaranteed to be present.
-
-=item reference_numbers
-
-The reference number could be multiple. We return the list of
-reference numbers from both the shipment and the packages. Not
-guaranteed to be populated.
 
 =item source
 
@@ -33,28 +23,6 @@ The source of the data. (Defaults to "exception").
 has source => (is => 'ro',
                default => sub { return "exception" });
 
-sub tracking_number {
-    my $self = shift;
-    return $self->_unrolled_details('TrackingNumber');
-}
-
-sub reference_numbers {
-    my $self = shift;
-    my @nums;
-    foreach my $type (qw/PackageReferenceNumber ShipmentReferenceNumber/) {
-        if (my $numsref = $self->_unrolled_details($type)) {
-            foreach my $num (@$numsref) {
-                push @nums, $num->{Value};
-            }
-        }
-    }
-    return @nums;
-}
-
-sub source {
-    my $self = shift;
-    return "exception";
-}
 
 =item exception_datetime
 
@@ -65,10 +33,7 @@ much sense..., being mandatory and being an exception. Delivered when?)
 =cut
 
 sub exception_datetime {
-    my $self = shift;
-    return $self->_ups_datetime_to_iso8601($self->_unrolled_details("Date"),
-                                           $self->_unrolled_details("Time"));
-                                           
+    return shift->datetime;
 }
 
 =item location
