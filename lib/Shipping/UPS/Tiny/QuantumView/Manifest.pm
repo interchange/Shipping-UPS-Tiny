@@ -132,19 +132,19 @@ No details are provided by the doc about the format beside a length of
 sub pickup_date {
     my $self = shift;
     my $date = $self->_unrolled_details("PickupDate");
-    return $self->_ups_date_to_sql_date($date);
+    return $self->_ups_date_to_iso_8601_date($date);
 }
 
 sub scheduled_delivery_date {
     my $self = shift;
     my $date = $self->_unrolled_details("ScheduledDeliveryDate");
-    return $self->_ups_date_to_sql_date($date);
+    return $self->_ups_date_to_iso_8601_date($date);
 }
 
 sub scheduled_delivery_time {
     my $self = shift;
     my $time = $self->_unrolled_details("ScheduledDeliveryTime");
-    return $self->_ups_time_to_sql_time($time);
+    return $self->_ups_time_to_iso_8601_time($time);
 }
 
 =item packages

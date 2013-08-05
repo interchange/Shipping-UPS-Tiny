@@ -106,14 +106,14 @@ sub activities_datetime {
     if ($acts) {
         foreach my $act (@$acts) {
             next unless exists $act->{Date};
-            my $date = $self->_ups_date_to_sql_date($act->{Date});
+            my $date = $self->_ups_date_to_iso_8601_date($act->{Date});
             my $time;
             if (exists $act->{Time} and defined $act->{Time}) {
-                $time = $self->_ups_time_to_sql_time($act->{Time});
+                $time = $self->_ups_time_to_iso_8601_time($act->{Time});
             }
             else {
                 # it will return 00:00:00
-                $time = $self->_ups_time_to_sql_time("n/a");
+                $time = $self->_ups_time_to_iso_8601_time("n/a");
             }
             push @list, join (" ", $date, $time);
         }

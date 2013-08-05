@@ -73,7 +73,7 @@ sub _unrolled_details {
     }
 }
 
-sub _ups_date_to_sql_date {
+sub _ups_date_to_iso_8601_date {
     my ($self, $date) = @_;
     return "" unless $date;
     if ($date =~ m/([0-9]{4})([0-9]{2})([0-9]{2})/) {
@@ -84,7 +84,7 @@ sub _ups_date_to_sql_date {
     }
 }
 
-sub _ups_time_to_sql_time {
+sub _ups_time_to_iso_8601_time {
     my ($self, $time) = @_;
     return unless defined $time;
     my $default = "00:00:00";
