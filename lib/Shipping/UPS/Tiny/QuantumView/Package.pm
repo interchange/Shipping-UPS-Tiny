@@ -83,12 +83,6 @@ sub reference_numbers {
 A list of sql DATETIME strings (YYYY-MM-DD HH:MM:ss) with the package
 activities. UPS doesn't specify what it's doing. Just "activity".
 
-=back
-
-=head1 MORE DETAILS
-
-
-
 =cut
 
 
@@ -105,9 +99,44 @@ sub activities_datetime {
     return @list;
 }
 
+=item latest_activity
+
+Returns the most recent activity date.
+
+=cut
+
+sub latest_activity {
+    my $self = shift;
+    my @acts = $self->activities_datetime;
+    return unless @acts; # no date :-\
+    if (@acts == 1) {
+        return shift(@acts);
+    }
+    else {
+        my @sorted = sort { $a cmp $b } @acts;
+        return pop(@sorted);
+    }
+}
+
+=item activity_location
+
+Not relevant. Returns "origin", beign a manifest".
+
+=cut
+
+sub activity_location {
+    my $self = shift;
+    return "origin";
+}
+
+
 =item ship_to_as_string
 
 Returns a string with the consegnee address.
+
+=item destination
+
+Alias of C<ship_to_as_string>
 
 =cut
 
@@ -132,5 +161,8 @@ sub ship_to_as_string {
     return join (" ", @address);
 }
 
+sub destination {
+    return shift->ship_to_as_string;
+}
 
 1;

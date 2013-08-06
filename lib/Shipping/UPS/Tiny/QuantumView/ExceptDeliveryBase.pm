@@ -46,10 +46,24 @@ sub reference_numbers {
     return @nums;
 }
 
+=item datetime
+
+Timestamp of the operation
+
+=item latest_activity
+
+Alias for C<datetime>
+
+=cut
+
 sub datetime {
     my $self = shift;
     return $self->_ups_datetime_to_iso8601($self->_unrolled_details("Date"),
                                            $self->_unrolled_details("Time"));
+}
+
+sub latest_activity {
+    return shift->datetime;
 }
 
 =item activity_location
@@ -75,6 +89,35 @@ sub activity_location {
         }
     }
     return $out;
+}
+
+=item format_address(\%address)
+
+Return the address (as provided by Delivery and Exception) as a string.
+
+=cut
+
+sub format_address {
+    my ($self, $hash) = @_;
+    return "" unless $hash;
+    my @address;
+    foreach my $k (qw/ConsigneeName
+                      BuildingName
+                      StreetPrefix StreetType StreetName StreetSuffix
+                      StreetNumberLow
+                      PostcodePrimaryLow PostcodeExtendedLow
+                      PoliticalDivision3 PoliticalDivision2 PoliticalDivision1
+                      CountryCode/) {
+        if (exists $hash->{$k} and defined $hash->{$k}) {
+            push @address, $hash->{$k};
+        }
+    }
+    if (@address) {
+        return join (" ", @address);
+    }
+    else {
+        return "";
+    }
 }
 
 1;

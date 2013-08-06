@@ -29,41 +29,24 @@ has source => (is => 'ro',
 From the doc: Time that the package is delivered. (Which doesn't do
 much sense..., being mandatory and being an exception. Delivered when?)
 
-
 =cut
 
 sub exception_datetime {
     return shift->datetime;
 }
 
-=item location
-
-Location of the exception (if any).
-
-=cut
-
-sub location {
-    my $self = shift;
-    my $out = "";
-    if (my $loc = $self->_unrolled_details("ActivityLocation")) {
-        if (exists $loc->{AddressArtifactFormat}) {
-            my @details;
-            foreach my $k (qw/PoliticalDivision2 PoliticalDivision1 CountryCode/) {
-                if (exists $loc->{AddressArtifactFormat}->{$k}) {
-                    push @details, $loc->{AddressArtifactFormat}->{$k};
-                }
-            }
-            if (@details) {
-                $out = join(" ", @details);
-            }
-        }
-    }
-    return $out;
-}
 
 =item updated_address
 
-The raw hashref of the updated address. To be serialized?
+The raw hashref of the updated address.
+
+=item updated_address_as_string
+
+The address as string
+
+=item destination
+
+Alias for C<updated_address_as_string>
 
 =cut
 
@@ -72,9 +55,20 @@ sub updated_address {
     return $self->_unrolled_details("UpdatedAddress");
 }
 
-=item description
+sub updated_address_as_string {
+    my $self = shift;
+    my $hash = $self->updated_address;
+    return $self->format_address($hash);
+    
+}
 
-The description (with code) of the exception
+sub destination {
+    return shift->updated_address_as_string;
+}
+
+=item details
+
+The description, reason and resolution (with codes) of the exception
 
 =item resolution
 
@@ -82,7 +76,7 @@ code and description of the resolution (if any)
 
 =cut
 
-sub description {
+sub details {
     my $self = shift;
     my $data = $self->data;
     my @out;
@@ -91,6 +85,9 @@ sub description {
         if (exists $data->{$k} and defined $data->{$k}) {
             push @out, $data->{$k};
         }
+    }
+    if (my $resolution = $self->resolution) {
+        push @out, $resolution;
     }
     if (@out) {
         return join(" ", @out);
@@ -116,6 +113,10 @@ sub resolution {
 
 If present, the date to reschedule the package
 
+=item scheduled_delivery_date
+
+Alias for C<rescheduled_date>
+
 =item rescheduled_time
 
 If present, the time to reschedule the package
@@ -125,7 +126,7 @@ If present, the time to reschedule the package
 sub rescheduled_date {
     my $self = shift;
     my $date = $self->_unrolled_details("RescheduledDeliveryDate");
-    return "" unless $date;
+    return unless $date;
     return $self->_ups_date_to_iso_8601_date($date) 
 }
 
@@ -136,7 +137,8 @@ sub rescheduled_time {
     return $self->_ups_time_to_iso_8601_time($time);
 }
 
+sub scheduled_delivery_date {
+    return shift->rescheduled_date;
+}
 
 1;
-
-                          

@@ -15,16 +15,6 @@ Subclass of L<Shipping::UPS::Tiny::QuantumView::ExceptDeliveryBase>
 
 =over 4
 
-=item tracking_number
-
-The tracking number of the package. It's guaranteed to be present.
-
-=item reference_numbers
-
-The reference number could be multiple. We return the list of
-reference numbers from both the shipment and the packages. Not
-guaranteed to be populated.
-
 =item source
 
 The source of the data. (Defaults to "delivery").
@@ -35,26 +25,6 @@ The source of the data. (Defaults to "delivery").
 has source => (is => 'ro',
                default => sub { return "delivery" });
 
-sub tracking_number {
-    my $self = shift;
-    return $self->_unrolled_details('TrackingNumber');
-}
-
-sub reference_numbers {
-    my $self = shift;
-    my @nums;
-    foreach my $type (qw/PackageReferenceNumber ShipmentReferenceNumber/) {
-        if (my $numsref = $self->_unrolled_details($type)) {
-            foreach my $num (@$numsref) {
-                push @nums, $num->{Value};
-            }
-        }
-    }
-    return @nums;
-}
-
-
-
 =item delivery_datetime
 
 The delivery DATETIME (iso 8061)
@@ -63,9 +33,13 @@ The delivery DATETIME (iso 8061)
 
 The hashref with the delivery location details. p.70-71 of the doc.
 
-=item delivery_location_address
+=item delivery_location_address_as_string
 
 The address as a single string.
+
+=item destination
+
+Alias for C<delivery_location_address_as_string>
 
 =item delivery_location
 
@@ -74,6 +48,10 @@ Code and description of the delivery location.
 =item signed_by
 
 The name of the person who signed the delivery.
+
+=item details
+
+For the delivery, the details contains the C<signed_by> field.
 
 =cut
 
@@ -106,19 +84,11 @@ sub delivery_location_address_as_string {
 
     # We also skip "AddressExtendedInformation" whose purpose is
     # unknown and has only Type, Low, High. Mah!
-    my @address;
-    foreach my $k (qw/ConsigneeName
-                      BuildingName
-                      StreetPrefix StreetType StreetName StreetSuffix
-                      StreetNumberLow
-                      PostcodePrimaryLow PostcodeExtendedLow
-                      PoliticalDivision3 PoliticalDivision2 PoliticalDivision1
-                      CountryCode/) {
-        if (exists $hash->{$k} and defined $hash->{$k}) {
-            push @address, $hash->{$k};
-        }
-    }
-    return join (" ", @address);
+    return $self->format_address($hash);
+}
+
+sub destination {
+    return shift->delivery_location_address_as_string;
 }
 
 sub signed_by {
@@ -130,6 +100,12 @@ sub signed_by {
     }
     return "";
 }
+
+sub details {
+    my $self = shift;
+    return join(" ", $self->delivery_location, $self->signed_by);
+}
+
 
 sub delivery_location {
     my $self = shift;

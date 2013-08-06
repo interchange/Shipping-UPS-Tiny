@@ -116,6 +116,55 @@ sub _get_ref_nums {
     return @list;
 }
 
+=item pickup_date
+
+Returns undef (overloaded by the Manifest's Package).
+
+=cut
+
+sub pickup_date {
+    return undef;
+}
+
+=item details
+
+Returns the empty string (to be overloaded).
+
+=items scheduled_delivery_date
+
+=cut
+
+sub details {
+    return "";
+}
+
+sub scheduled_delivery_date {
+    return undef;
+}
+
+
+=item shared_methods
+
+List of the methods shared between Delivery, Package (from Manifest)
+and Exception. These methods define the data which can be stored in
+the database in a common table.
+
+=cut
+
+sub shared_methods {
+    return (qw/subscription_number subscription_name subscription_status
+               subscription_status_desc file_status_desc
+               file_status file_name
+               source
+               tracking_number
+               latest_activity
+               activity_location
+               scheduled_delivery_date
+               destination
+               details
+               pickup_date/);
+}
+
 1;
 
                           

@@ -178,10 +178,9 @@ sub test_manifests {
            "$prefix Exception Datetime: " . $manifest->exception_datetime);
         ok(defined $manifest->activity_location,
            "$prefix location: " . $manifest->activity_location);
-        ok(defined $manifest->description, "$prefix desc: " . $manifest->description);
+        ok(defined $manifest->details, "$prefix desc: " . $manifest->details);
         ok(defined $manifest->resolution, "$prefix resolution: " . $manifest->resolution);
-        ok(defined $manifest->rescheduled_date,
-           "$prefix reschedule: " . $manifest->rescheduled_date);
+        ok ($manifest->can("rescheduled_date"));
     }
 
     if ($type eq 'origin') {
@@ -231,3 +230,4 @@ sub test_manifests {
         }
     }
 }
+
