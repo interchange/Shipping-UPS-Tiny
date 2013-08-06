@@ -8,15 +8,20 @@ use YAML qw/LoadFile Dump/;
 use Shipping::UPS::Tiny::QuantumView;
 use Shipping::UPS::Tiny::QuantumView::Response;
 use File::Slurp;
+use Data::Dumper;
+use SQL::Abstract;
 use DBI;
 
 
 my $conf;
 my $verbose;
 my $help;
-GetOptions ("conf=s" => \$conf,
+my $xmlfile;
+GetOptions ('conf=s' => \$conf,
             help => \$help,
-            verbose => \$verbose);
+            verbose => \$verbose,
+            'xmlfile=s' => \$xmlfile,
+           );
 
 if ($help) {
     give_help();
@@ -31,63 +36,73 @@ unless ($conf and (-f $conf)) {
 my $account = LoadFile($conf);
 vprint("Using these credentials: " . Dump($account));
 
+my @dbconf = (delete($account->{dbdsn}),
+              delete($account->{dbuser}),
+              delete($account->{dbpassword}));
+
+if ($xmlfile) {
+    die "$xmlfile is not a file" unless -f $xmlfile;
+    process_xml_file($xmlfile, $account->{schemadir});
+    exit;
+}
+
+
 my $qv = Shipping::UPS::Tiny::QuantumView->new(%$account);
 vprint("Using endpoint " . $qv->endpoint);
 my $res = $qv->fetch(unread => 1);
-my $file = $qv->xml_path;
+$xmlfile = $qv->xml_path;
 
 # This is ugly, but can't be helped and it's waiting for real data
 # from the live server to be properly tested & fixed
 
 if ($qv->endpoint eq 'https://wwwcie.ups.com/ups.app/xml/QVEvents') {
     print "Using the development server!: it's sending bogus data, trying to fix it\n";
-    $file = fix_bogus_data($file);
-    print "Using $file as response!\n";
-    $res = Shipping::UPS::Tiny::QuantumView::Response->new (response => $file,
-                                                            schemadir => $qv->schemadir);
+    $xmlfile = fix_bogus_data($xmlfile);
+    print "Using $xmlfile as response!\n";
 }
 
-unless ($res->is_success) {
-    die $res->error;
-}
+process_xml_file($xmlfile, $qv->schemadir);
 
-foreach my $manifest ($res->qv_manifests) {
-    # we wants the packages
-    foreach my $pack ($manifest->packages) {
-        # get the common files
-        print (join " ", get_common($pack));
-        print $pack->scheduled_delivery_date, "\n";
-        print $pack->ship_to_as_string, "\n";
-        print $pack->pickup_date, "\n";
-        print $pack->service_code, "\n";
-        print join(" ", $pack->activities_datetime), "\n";
+sub process_xml_file {
+    my ($file,$schemadir) = @_;
+    my $res =
+      Shipping::UPS::Tiny::QuantumView::Response->new (response => $file,
+                                                       schemadir => $schemadir);
+    unless ($res->is_success) {
+        die $res->error;
+    }
+
+    my $dbh = DBI->connect(@dbconf)
+      or die "Couldn't connect to" . join(",", @dbconf);
+
+    foreach my $manifest ($res->qv_manifests) {
+        # we wants the packages
+        foreach my $pack ($manifest->packages) {
+            dbinsert($dbh, $pack);
+        }
+    }
+
+    foreach my $exc ($res->qv_exceptions) {
+        dbinsert($dbh, $exc);
+    }
+
+    foreach my $del ($res->qv_deliveries) {
+        dbinsert($dbh, $del);
     }
 }
 
-foreach my $exc ($res->qv_exceptions) {
-    print (join " ", get_common($exc));
-    print $exc->rescheduled_date, "\n";
-    print $exc->resolution, "\n";
-    print $exc->updated_address, "\n";
-    print $exc->activity_location, "\n";
-    print $exc->description, "\n";
+sub dbinsert {
+    my ($dbh, $obj) = @_;
+    my $set = {};
+    my $sql = SQL::Abstract->new;
+    foreach my $method ($obj->shared_methods) {
+        $set->{$method} = $obj->$method;
+    }
+    vprint (Dumper($set));
+    my ($stmt, @bind) = $sql->insert(quantum_view => $set);
+    my $sth = $dbh->prepare($stmt);
+    $sth->execute(@bind);
 }
-
-foreach my $del ($res->qv_deliveries) {
-    print (join " ", get_common($del));
-    print $del->delivery_location_address_as_string, "\n";
-    print $del->datetime, "\n";
-    print $del->signed_by, "\n";
-    print $del->delivery_location, "\n";
-}
-
-
-# we got the response, now loop over, manifests, exceptions and deliveries
-
-
-
-
-
 
 sub give_help {
     print <<'HELPME';
@@ -100,6 +115,8 @@ Options:
 
   --verbose
     Be verbose.
+
+  --xmlfile Instead of querying the server, process and existing XML file.
 
   --help
     Print this help
@@ -114,6 +131,29 @@ password: "P4zzWord"
 endpoint: "https://onlinetools.ups.com/ups.app/xml/QVEvents"
 account_key: "MyPreciousUPSkey"
 subscription_name: "ExceptionandDeliver"
+dbdsn: "dbi:SQLite:db=t/test.db"
+dbuser: ""
+dbpass: ""
+
+DB schema:
+
+CREATE TABLE quantum_view(
+       subscription_number  VARCHAR(64),
+       subscription_name    VARCHAR(64),
+       subscription_status  VARCHAR(64),
+       subscription_status_desc VARCHAR(255),
+       file_status_desc VARCHAR(255),
+       file_status      VARCHAR(64),
+       file_name        VARCHAR(255),
+       source           VARCHAR(64),
+       tracking_number  VARCHAR(128),
+       latest_activity  DATETIME,
+       activity_location VARCHAR(255),
+       scheduled_delivery_date DATE,
+       destination        VARCHAR(255),
+       details            VARCHAR(255),
+       pickup_date        DATE);
+
 
 HELPME
 }
@@ -134,17 +174,3 @@ sub fix_bogus_data {
     return $file;
 }
 
-sub get_common {
-    my $obj = shift;
-    my %common;
-    foreach my $acc (qw/subscription_number subscription_name subscription_status
-                        subscription_status_desc file_status_desc
-                        tracking_number
-                        file_status file_name source/) {
-        $common{$acc} = $obj->$acc;
-    }
-    if (my @nums = $obj->reference_numbers) {
-        $common{reference_number} = shift(@nums);
-    }
-    return %common;
-}
