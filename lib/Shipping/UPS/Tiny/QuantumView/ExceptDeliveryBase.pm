@@ -14,24 +14,18 @@ shared methods between Delivery and Exception;
 
 =head1 ACCESSORS
 
-=head1 ACCESSORS
-
-=item tracking_number
-
-The tracking number of the package. It's guaranteed to be present.
-
 =item reference_numbers
 
 The reference number could be multiple. We return the list of
 reference numbers from both the shipment and the packages. Not
 guaranteed to be populated.
 
-=cut
+=item reference_number
 
-sub tracking_number {
-    my $self = shift;
-    return $self->_unrolled_details('TrackingNumber');
-}
+If multiple reference numbers are found, return just the first or the
+empty string.
+
+=cut
 
 sub reference_numbers {
     my $self = shift;
@@ -44,6 +38,13 @@ sub reference_numbers {
         }
     }
     return @nums;
+}
+
+sub reference_number {
+    my $self = shift;
+    my @nums = $self->reference_numbers;
+    return "" unless (@nums);
+    return shift(@nums);
 }
 
 =item datetime

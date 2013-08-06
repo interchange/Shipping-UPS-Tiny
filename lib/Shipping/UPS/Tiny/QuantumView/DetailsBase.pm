@@ -73,6 +73,17 @@ sub _unrolled_details {
     }
 }
 
+=item tracking_number
+
+The tracking number
+
+=cut
+
+sub tracking_number {
+    my $self = shift;
+    return $self->_unrolled_details("TrackingNumber") || "";
+}
+
 sub _ups_date_to_iso_8601_date {
     my ($self, $date) = @_;
     return "" unless $date;
@@ -157,6 +168,7 @@ sub shared_methods {
                file_status file_name
                source
                tracking_number
+               reference_number
                latest_activity
                activity_location
                scheduled_delivery_date

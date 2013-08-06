@@ -54,20 +54,16 @@ has scheduled_delivery_time => (is => 'ro');
 has source => (is => 'ro');
 has manifest_reference_numbers => (is => 'ro');
 
-=item tracking_number
-
-The tracking number
-
 =item reference_numbers
 
 The reference number could be multiple. We return the list of reference numbers.
 
-=cut
+=item reference_number
 
-sub tracking_number {
-    my $self = shift;
-    return $self->_unrolled_details("TrackingNumber") || "";
-}
+If multiple reference numbers are found, return just the first or the
+empty string.
+
+=cut
 
 sub reference_numbers {
     my $self = shift;
@@ -77,6 +73,15 @@ sub reference_numbers {
     }
     return @list;
 }
+
+sub reference_number {
+    my $self = shift;
+    my @nums = $self->reference_numbers;
+    return "" unless (@nums);
+    return shift(@nums);
+}
+
+
 
 =item activities_datetime
 

@@ -147,6 +147,7 @@ CREATE TABLE quantum_view(
        file_name        VARCHAR(255),
        source           VARCHAR(64),
        tracking_number  VARCHAR(128),
+       reference_number VARCHAR(128),
        latest_activity  DATETIME,
        activity_location VARCHAR(255),
        scheduled_delivery_date DATE,
