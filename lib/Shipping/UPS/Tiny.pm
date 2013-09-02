@@ -8,6 +8,7 @@ use XML::Compile::WSDL11;
 use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
+use File::Spec;
 use Shipping::UPS::Tiny::Address;
 use Shipping::UPS::Tiny::CC;
 use Shipping::UPS::Tiny::Package;
@@ -21,15 +22,15 @@ use Moo;
 
 =head1 NAME
 
-Shipping::UPS::Tiny - The great new Shipping::UPS::Tiny!
+Shipping::UPS::Tiny - Handle UPS API with L<XML::Compile>
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -96,8 +97,6 @@ It defaults to the development server,
 L<https://wwwcie.ups.com/webservices/Ship>. When ready for production,
 switch it to L<https://onlinetools.ups.com/webservices/Ship>
 
-=item wsdlfile
-
 You need to fetch the API documentation from UPS, in the Shipping.zip
 package the wdsl is located at:
 
@@ -105,9 +104,11 @@ Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs/Ship.wsdl
 
 =item schema_dir
 
-If I read correctly, the definitions are in 
+The schema directory is the one provided by UPS:
 
-Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs
+C<Shipping_Pkg/ShippingPACKAGE/PACKAGEWebServices/SCHEMA-WSDLs>
+
+So you have to pass the correct location of the directory.
 
 =cut
 
@@ -117,17 +118,31 @@ has 'endpoint' => (is => 'ro',
                        return 'https://wwwcie.ups.com/webservices/Ship';
                    });
 
-has 'wsdlfile' => (is => 'ro',
-                   isa => sub {
-                       die "WDSL $_[0] is not a file"
-                         unless -f $_[0];
-                   });
-
 has 'schema_dir' => (is => 'ro',
+                     required => 1,
                      isa => sub {
                          die "schema_dir $_[0] is not a directory"
                            unless -d $_[0];
                      });
+
+
+=item wsdlfile
+
+For the shipping package, the wsdlfile is hardcoded as C<Ship.wsdl>,
+which should be located in the schema_dir, as provided by UPS.
+
+If UPS decides to change the naming schema, rename files, etc., it
+means that this module will be obsolete and should be updated
+accordingly.
+
+=cut
+
+sub wsdlfile {
+    my $self = shift;
+    my $wsdl = File::Spec->catfile($self->schema_dir, 'Ship.wsdl');
+    die "$wsdl is not a file" unless -f $wsdl;
+    return $wsdl;
+}
 
 =item shipper
 

@@ -8,7 +8,7 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 29;
+plan tests => 28;
 
 my $conffile = catfile(t => 'conf.yml');
 
@@ -23,7 +23,7 @@ my $ups = Shipping::UPS::Tiny->new(
                                    %{ $conf->{account} }
                                   );
 
-for (qw/username password account_key ups_account schema_dir wsdlfile/) {
+for (qw/username password account_key ups_account schema_dir/) {
     is $ups->$_, $conf->{account}->{$_}, "$_ ok";
 }
 

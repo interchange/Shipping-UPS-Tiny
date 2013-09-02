@@ -4,7 +4,7 @@ use strict;
 use warnings FATAL => 'all';
 use Test::More;
 
-plan tests => 8;
+plan tests => 9;
 
 BEGIN {
     use_ok( 'Shipping::UPS::Tiny' ) || print "Bail out!\n";
@@ -15,6 +15,7 @@ BEGIN {
     use_ok( 'Shipping::UPS::Tiny::ShipmentResponse');
     use_ok( 'Shipping::UPS::Tiny::QuantumView');
     use_ok( 'Shipping::UPS::Tiny::QuantumView::Response');
+    use_ok( 'Shipping::UPS::Tiny::Rates');
 }
 
 diag( "Testing Shipping::UPS::Tiny $Shipping::UPS::Tiny::VERSION, Perl $], $^X" );

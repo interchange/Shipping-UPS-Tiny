@@ -3,7 +3,6 @@ account:
   password: 'xxxx'
   account_key: 'xxxx'
   ups_account: 'xxxx'
-  wsdlfile: 't/SCHEMA-WSDLs/Ship.wsdl'
   schema_dir: 't/SCHEMA-WSDLs'
 from:
   company: 'Jon Doe d.o.o.'
