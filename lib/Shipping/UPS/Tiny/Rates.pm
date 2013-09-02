@@ -210,6 +210,12 @@ sub _build_hash {
         $req->{Shipment}->{Service} = $self->service;
     }
 
+    # negotiated rates is implemented by the parent class, no value,
+    # just create the key. But the ups key is needed.
+    if ($self->negotiated_rates) {
+        $req->{Shipment}->{ShipmentRatingOptions}->{NegotiatedRatesIndicator} = undef;
+    }
+
     # and here comes the hack: the UPS geniuses don't use a consistent
     # schema for shipper, packages, etc. so, instead of building
     # another class, we delete the unused info, where the thing barfs.
@@ -223,6 +229,7 @@ sub _build_hash {
         delete $p->{Description};
         $p->{PackagingType} = delete $p->{Packaging};
     }
+
     return $req;
 }
 
