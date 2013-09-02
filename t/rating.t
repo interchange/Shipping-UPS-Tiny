@@ -7,7 +7,7 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 1;
+plan tests => 8;
 
 my $conffile = catfile(t => 'rates.yml');
 
@@ -27,14 +27,23 @@ for (qw/username password account_key schema_dir/) {
 }
 
 $ups->from({
-            %{ $conf->{from} }
+            name => "John Doe",
+            address => "Washington road",
+            city => "New York",
+            postal_code => '10001',
+            province => "NY",
+            country => "US",
            });
 
 ok($ups->from_address, "From address OK");
 print Dumper $ups->from_address;
 
 $ups->to({
-          %{ $conf->{to} }
+          name => 'Big Jim',
+          address => 'rue de Fantasy',
+          city => 'Paris',
+          postal_code =>  '75001',
+          country =>  'FR',
          });
 
 ok($ups->to_address, "To address OK");
@@ -42,10 +51,21 @@ print Dumper $ups->to_address;
 ok($ups->shipper_address, "Shipper address OK");
 
 $ups->set_package({
-                   description => "Test package",
-                   length => 10,
-                   width => 10,
-                   height => 10,
+                   length => 4,
+                   width => 4,
+                   height => 4,
                    weight => 0.1,
+                   cm_kg => 0,
                   });
 
+$ups->request_type('Shop');
+# $ups->service('11');
+my @rates = $ups->rate;
+
+print Dumper(\@rates);
+
+ok(@rates);
+
+# print Dumper($ups->debug_hash_request);
+
+# print Dumper($ups->debug_hash_response);

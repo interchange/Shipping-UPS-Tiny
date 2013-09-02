@@ -44,11 +44,6 @@ Perhaps a little code snippet.
     my $foo = Shipping::UPS::Tiny->new();
     ...
 
-=head1 EXPORT
-
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
 =head1 ACCESSORS
 
 =head2 Credentials
@@ -332,7 +327,9 @@ sub _build_shipper_address {
     my $addr = Shipping::UPS::Tiny::Address->new(%$args);
     my $hash = $addr->as_hash;
     # add the shipper number, without it the request would fail
-    $hash->{ShipperNumber} = $self->ups_account;
+    if (my $acc = $self->ups_account) {
+        $hash->{ShipperNumber} = $acc;
+    }
     $self->_set_shipper_address($hash);
 }
 

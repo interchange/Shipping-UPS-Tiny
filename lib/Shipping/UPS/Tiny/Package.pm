@@ -136,7 +136,7 @@ sub as_hash {
     }
     else {
         $cm = {
-               Code => '',
+               Code => 'IN',
                Description => 'Inches',
               };
         $kg = {

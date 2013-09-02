@@ -90,10 +90,11 @@ has country => (is => 'ro',
                 },
                 required => 1);
 
-has phone => (is => 'ro',
-              # maybe add validation?
-              required => 1);
+# don't require it. The server will barf without it where required.
+# unclear
 
+has phone => (is => 'ro',
+              default => '');
 
 has phone_ext => (is => 'ro');
 
