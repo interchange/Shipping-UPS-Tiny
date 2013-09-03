@@ -86,4 +86,15 @@ sub as_hash {
 }
 
 
+=item list_services
+
+Return an hashref with the code => service's name mapping
+
+=cut
+
+sub list_services {
+    my $self = shift;
+    return { %services };
+}
+
 1;
