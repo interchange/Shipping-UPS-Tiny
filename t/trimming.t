@@ -6,11 +6,12 @@ use File::Spec::Functions;
 use Data::Dumper;
 use Test::More;
 
-plan tests => 3;
-
 my $conffile = catfile(t => 'conf.yml');
 
-unless (-f $conffile) {
+if (-f $conffile) {
+    plan tests => 3;
+}
+else {
     plan skip_all => "Please copy conf.yml.sample to conf.yml with the right credentials to run the tests";
     exit;
 }

@@ -9,11 +9,12 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 6;
-
 my $conffile = catfile(t => 'conf.yml');
 
-unless (-f $conffile) {
+if (-f $conffile) {
+    plan tests => 6;
+}
+else {
     plan skip_all => "Please copy conf.yml.sample to conf.yml with the right credentials to run the tests";
     exit;
 }

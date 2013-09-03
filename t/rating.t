@@ -7,12 +7,12 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 20;
-
 my $conffile = catfile(t => 'rates.yml');
 
-unless (-f $conffile) {
-    plan skip_all => "Please copy conf.yml.sample to rates.yml with the right credentials to run the tests";
+if (-f $conffile) {
+    plan tests => 20;
+} else {
+    plan skip_all => "Please copy conf.yml.sample to rates.yml with the right credentials to run the tests. The 'from' and 'to' fields are ignored";
     exit;
 }
 
