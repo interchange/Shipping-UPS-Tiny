@@ -10,7 +10,7 @@ use XML::Compile::Transport::SOAPHTTP;
 
 use Moo;
 
-extends "Shipping::UPS::Tiny";
+extends "Shipping::UPS::Tiny::Base";
 
 =head1 NAME
 
@@ -18,11 +18,10 @@ Shipping::UPS::Tiny::Rating - retrieve the UPS rates for a package.
 
 =head1 DESCRIPTION
 
-This module inherits as much as possible from L<Shipping::UPS::Tiny>.
+This module inherits from L<Shipping::UPS::Tiny::Base>.
 
-The C<schemadir> option can't be shared with the parent module, and
-must point to another directory.
-
+Please note that the C<schemadir> option can't be shared with the
+L<Shipping::UPS::Tiny> class, and must point to another directory.
 
 =head1 SYNOPSIS
 
@@ -233,18 +232,18 @@ sub _build_hash {
     return $req;
 }
 
-=item rate
+=item rates
 
 The main method.
 
 =cut 
 
 
-sub rate {
+sub rates {
     my $self = shift;
     my $request = $self->_build_hash;
     $self->_set_debug_hash_request($request);
-    my ($response, $trace) = $self->soap->($request, 'UTF-8');
+    my ($response, $trace) = $self->soap('ProcessRate')->($request, 'UTF-8');
 
     $self->_set_debug_trace($trace);
     $self->_set_debug_hash_response($response);
@@ -264,29 +263,5 @@ sub rate {
 }
 
 
-=item  soap
-
-The XML::Compile::SOAP client (internal)
-
-=cut
-
-sub soap {
-    my $self = shift;
-    unless ($self->_soap_obj) {
-        my $wsdl = XML::Compile::WSDL11->new($self->wsdlfile);
-        my @schemas = 
-        $wsdl->importDefinitions([ glob $self->schema_dir . "/*.xsd" ]);
-        my $operation = $wsdl->operation('ProcessRate');
-        my $client = $operation->compileClient(endpoint => $self->endpoint);
-        $self->_set__soap_obj($client);
-    }
-    return $self->_soap_obj;
-}
-
-
-
-=back
-
-=cut
 
 1;

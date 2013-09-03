@@ -30,7 +30,7 @@ for (qw/username password account_key ups_account schema_dir/) {
 is($ups->endpoint, "https://wwwcie.ups.com/webservices/Ship",
    "endpoint is set to development by default");
 
-ok($ups->soap, "SOAP client exists");
+ok($ups->soap('ProcessShipment'), "SOAP client exists");
 
 # print Dumper $conf->{from};
 

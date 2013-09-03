@@ -60,7 +60,7 @@ $ups->set_package({
 
 $ups->request_type('Shop');
 # $ups->service('11');
-my @rates = $ups->rate;
+my @rates = $ups->rates;
 
 print Dumper(\@rates);
 
@@ -68,4 +68,4 @@ ok(@rates);
 
 # print Dumper($ups->debug_hash_request);
 
-# print Dumper($ups->debug_hash_response);
+print Dumper($ups->debug_hash_response);

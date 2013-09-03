@@ -4,21 +4,13 @@ use 5.010000;
 use strict;
 use warnings FATAL => 'all';
 
-use XML::Compile::WSDL11;
-use XML::Compile::SOAP11;
-use XML::Compile::Transport::SOAPHTTP;
-
 use File::Spec;
-use Shipping::UPS::Tiny::Address;
-use Shipping::UPS::Tiny::CC;
-use Shipping::UPS::Tiny::Package;
-use Shipping::UPS::Tiny::Service;
 use Shipping::UPS::Tiny::ShipmentResponse;
 use Shipping::UPS::Tiny::QuantumView;
 
 use Moo;
 
-
+extends 'Shipping::UPS::Tiny::Base';
 
 =head1 NAME
 
@@ -45,41 +37,6 @@ Perhaps a little code snippet.
     ...
 
 =head1 ACCESSORS
-
-=head2 Credentials
-
-=over 4
-
-=item account_key
-
-The key provided by UPS
-
-=item username
-
-The username
-
-=item ups_account 
-
-the UPS Account shown in the request confirmation
-
-=item password
-
-=back
-
-=cut
-
-has 'account_key' => (is => 'ro',
-                      required => 1);
-                  
-
-has 'username' => (is => 'ro',
-                   required => 1);
-
-has 'ups_account' => (is => 'ro',
-                      required => 1);
-
-has 'password' => (is => 'ro',
-                   required => 1);
 
 
 =head2 SOAP schemas and endpoint
@@ -113,14 +70,6 @@ has 'endpoint' => (is => 'ro',
                        return 'https://wwwcie.ups.com/webservices/Ship';
                    });
 
-has 'schema_dir' => (is => 'ro',
-                     required => 1,
-                     isa => sub {
-                         die "schema_dir $_[0] is not a directory"
-                           unless -d $_[0];
-                     });
-
-
 =item wsdlfile
 
 For the shipping package, the wsdlfile is hardcoded as C<Ship.wsdl>,
@@ -139,30 +88,17 @@ sub wsdlfile {
     return $wsdl;
 }
 
-=item shipper
 
-The shipper. If not present, the details from C<from_address> are
-used.
+=back
 
-=item from_address
+=head1 METHODS
 
-The origin address (read only, set by the method C<from>)
+The class inherits all the methods from L<Shipping::UPS::Tiny::Base>.
+Additionally, the following methods are provided.
 
-=item to_address
+=head2 Addresses
 
-The destination  (read only, set by the method C<to>)
-
-=item shipper_address
-
-The shipper address (read only, set by the method C<shipper>)
-
-=cut
-
-has from_address => (is => 'rwp');
-
-has to_address => (is => 'rwp');
-
-has shipper_address => (is => 'rwp');
+=over 4
 
 =item reference_number
 
@@ -247,121 +183,9 @@ has reference_number_type => (is => 'rw',
 
 Set this to a true value to ask UPS to validate the address.
 
-=item negotiated_rates
-
-Set this to a true value to signal UPS that you have negotiated rates.
-
-=back
-
 =cut
 
 has address_validation => (is => 'rw');
-
-
-has negotiated_rates => (is => 'rw');
-
-
-=head1 METHODS
-
-=head2 Addresses
-
-The following methods set the origin and the destination of the
-package. They accept an hashref as argument, using the keys described in
-L<UPS::Shipment::Tiny::Address>
-
-=over 4
-
-=item from
-
-=item to
-
-=item shipper
-
-This is optional and by default the values from the method C<from> are
-taken.
-
-=back
-
-=head2 Package
-
-=over 4
-
-=item set_package(\%hash)
-
-See L<UPS::Shipment::Tiny::Package> for the recognized keys.
-
-Pass
-
-=item package_props
-
-Accessor to the package hashref.
-
-=cut
-
-
-sub from {
-    my ($self, $args) = @_;
-    # all is supposed to die here if the args are not validated.
-    # eventually, wrap this in eval
-    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
-    # build the shipper if not already set
-    unless ($self->shipper_address) {
-        $self->_build_shipper_address($args);
-    };
-    $self->_set_from_address($addr->as_hash);
-};
-
-sub to {
-    my ($self, $args) = @_;
-    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
-    $self->_set_to_address($addr->as_hash);
-};
-
-sub shipper {
-    my ($self, $args) = @_;
-    $self->_build_shipper_address($args);
-}
-
-sub _build_shipper_address {
-    my ($self, $args) = @_;
-    my $addr = Shipping::UPS::Tiny::Address->new(%$args);
-    my $hash = $addr->as_hash;
-    # add the shipper number, without it the request would fail
-    if (my $acc = $self->ups_account) {
-        $hash->{ShipperNumber} = $acc;
-    }
-    $self->_set_shipper_address($hash);
-}
-
-
-has package_props => (is => 'rwp');
-
-sub set_package {
-    my ($self, $args) = @_;
-    my $pkg = Shipping::UPS::Tiny::Package->new(%$args);
-    $self->_set_package_props($pkg->as_hash);
-}
-
-has _service_hash => (is => 'rw',
-                      default => sub {
-                          return Shipping::UPS::Tiny::Service->new->as_hash;
-                      });
-
-=item service
-
-Select the service to use. The code is passed to a
-L<Shipping::UPS::Service> object. See its documentation for the
-available options.
-
-=cut
-
-sub service {
-    my ($self, $code) = @_;
-    if ($code) {
-        $self->_service_hash(Shipping::UPS::Tiny::Service->new(service_code => $code)->as_hash);
-    }
-    return $self->_service_hash
-}
 
 
 =item credit_card_info(\%cc_info);
@@ -386,41 +210,21 @@ has credit_card_info => (is => 'rw',
                                unless ref($_[0]) eq 'HASH';
                          });
 
-=head2 
-
-=over 4 
-
 =item ship("Description");
 
 Ship the package with UPS and return a
 L<Shipping::UPS::Tiny::Package::Response> object.
 
-=item debug_trace
-
 After calling C<ship>, the SOAP request is stored in the object and
-can be accessed with this accessor.
+can be accessed with C<debug_trace>
 
 Tipical usage:
 
+  $obj->ship("Nails for me");
   $obj->debug_trace->printRequest;
   $obj->debug_trace->printResponse;
 
-=item debug_hash_request
-
-The gigantic deep hash produced by the object is stored for further
-inspection in this accessor.
-
-=item debug_hash_response
-
-Accessor to the hash returned by the last SOAP request.
-
 =cut
-
-has debug_trace => (is => 'rwp');
-
-has debug_hash_request => (is => 'rwp');
-
-has debug_hash_response => (is => 'rwp');
 
 sub ship {
     my ($self, $desc) = @_;
@@ -430,7 +234,7 @@ sub ship {
     my $request = $self->_build_hash;
 
     $self->_set_debug_hash_request($request);
-    my ($response, $trace) = $self->soap->($request, 'UTF-8');
+    my ($response, $trace) = $self->soap('ProcessShipment')->($request, 'UTF-8');
 
     $self->_set_debug_trace($trace);
     $self->_set_debug_hash_response($response);
@@ -439,20 +243,6 @@ sub ship {
 
 has _description => (is => 'rw',
                      default => sub { return "" });
-
-
-sub _credentials {
-    my $self = shift;
-    return {
-            UsernameToken => {
-                              Username => $self->username,
-                              Password => $self->password,
-                             },
-            ServiceAccessToken => {
-                                   AccessLicenseNumber => $self->account_key,
-                                  },
-           };
-}
 
 
 sub _label_spec {
@@ -572,33 +362,6 @@ sub quantum_view {
 
 
 
-=head2 INTERNALS
-
-=over 4
-
-=item  soap
-
-The XML::Compile::SOAP client (internal)
-
-=cut
-
-has '_soap_obj' => (is => 'rwp');
-
-sub soap {
-    my $self = shift;
-    unless ($self->_soap_obj) {
-        my $wsdl = XML::Compile::WSDL11->new($self->wsdlfile);
-        my @schemas = 
-        $wsdl->importDefinitions([ glob $self->schema_dir . "/*.xsd" ]);
-        my $operation = $wsdl->operation('ProcessShipment');
-        my $client = $operation->compileClient(endpoint => $self->endpoint);
-        $self->_set__soap_obj($client);
-    }
-    return $self->_soap_obj;
-}
-
-
-=back
 
 =head1 AUTHOR
 
