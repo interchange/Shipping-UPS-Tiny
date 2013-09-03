@@ -4,9 +4,7 @@ use 5.010000;
 use strict;
 use warnings FATAL => 'all';
 
-use XML::Compile::WSDL11;
-use XML::Compile::SOAP11;
-use XML::Compile::Transport::SOAPHTTP;
+use Shipping::UPS::Tiny::RatesResponse;
 
 use Moo;
 
@@ -242,21 +240,23 @@ The main method.
 sub rates {
     my $self = shift;
     my $request = $self->_build_hash;
-    my $response = $self->soap(ProcessRate => $request);
+    my $res = $self->soap(ProcessRate => $request);
+    return Shipping::UPS::Tiny::RatesResponse->new(raw_response => $res);
 
-    if ($response->{Fault}) {
-        return;
-    }
-
-    # for now let spits out the details without too many details.
-    # The response should be incapsulated in an object
-    my @results;
-    if (my $services = $response->{Body}->{RatedShipment}) {
-        foreach my $s (@$services) {
-            push @results, [ $s->{Service}->{Code} => $s->{TotalCharges}->{MonetaryValue} . " " . $s->{TotalCharges}->{CurrencyCode}  ]
-        }
-    }
-    return @results;
+# 
+#     if ($response->{Fault}) {
+#         return;
+#     }
+# 
+#     # for now let spits out the details without too many details.
+#     # The response should be incapsulated in an object
+#     my @results;
+#     if (my $services = $response->{Body}->{RatedShipment}) {
+#         foreach my $s (@$services) {
+#             push @results, [ $s->{Service}->{Code} => $s->{TotalCharges}->{MonetaryValue} . " " . $s->{TotalCharges}->{CurrencyCode}  ]
+#         }
+#     }
+#     return @results;
 }
 
 

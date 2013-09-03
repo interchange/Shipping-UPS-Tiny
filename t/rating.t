@@ -7,7 +7,7 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 8;
+plan tests => 11;
 
 my $conffile = catfile(t => 'rates.yml');
 
@@ -60,12 +60,11 @@ $ups->set_package({
 
 $ups->request_type('Shop');
 # $ups->service('11');
-my @rates = $ups->rates;
 
-print Dumper(\@rates);
+my $rates = $ups->rates;
+ok $rates->is_success, "Success!";
+ok $rates->alert, "Alert found! " . $rates->alert;
+ok !$rates->is_fault, "No fault";
+ok $rates->raw_response, "Found raw response";
 
-ok(@rates);
 
-# print Dumper($ups->debug_hash_request);
-
-print Dumper($ups->debug_hash_response);
