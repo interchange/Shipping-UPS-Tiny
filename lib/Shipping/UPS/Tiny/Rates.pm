@@ -23,7 +23,47 @@ L<Shipping::UPS::Tiny> class, and must point to another directory.
 
 =head1 SYNOPSIS
 
-See the rating.t testfile until I write this
+    use Shipping::UPS::Tiny::Rates;
+    my $ups = Shipping::UPS::Tiny::Rates->new(username => 'pippo',
+                                              password => 'pazzW0rd',
+                                              account_key => '123412341234',
+                                              schema_dir => 'path/to/dir',
+                                              ups_account => '12341234',
+                                             );
+    $ups->from({
+                name => "John Doe",
+                address => "Washington road",
+                city => "New York",
+                postal_code => '10001',
+                province => "NY",
+                country => "US",
+               });
+    
+    $ups->to({
+              name => 'Big Jim',
+              address => 'rue de Fantasy',
+              city => 'Paris',
+              postal_code =>  '75001',
+              country =>  'FR',
+             });
+    
+    $ups->set_package({
+                       length => 4,
+                       width => 4,
+                       height => 4,
+                       weight => 0.1,
+                       cm_kg => 0,
+                      });
+    
+    my $rates = $up->rates;
+    
+    if ($rates->is_success) {
+        print Dumper([ $rates->list_rates ]);
+    }
+    else {
+        print "Got fault: ", $rates->is_fault;
+    }
+    
 
 =head1 ACCESSORS
 
