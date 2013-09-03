@@ -121,6 +121,28 @@ sub is_success {
     return 0;
 }
 
+sub _store_error_details {
+    my $self = shift;
+    my $raw = $self->raw_response;
+    my $error;
+    if (exists $raw->{ShipmentError}) {
+        $error = $raw->{ShipmentError}->{ErrorDetail};
+    }
+    elsif (exists $raw->{Fault}->{detail}->{Errors} and
+        exists $raw->{Fault}->{detail}->{Errors}->{ErrorDetail}) {
+        $error = $raw->{Fault}->{details}->{Errors}->{ErrorDetail};
+    }
+    elsif (exists $raw->{Body} and
+           exists $raw->{Body}->{Fault}->{details}->{Errors} and
+           exists $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail}) {
+        $error = $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail};
+    }
+    unless ($error) {
+        die "Unable to handle " . Dumper($raw);
+    }
+    $self->_fault($error);
+}
+
 
 
 
