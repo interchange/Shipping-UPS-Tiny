@@ -24,17 +24,64 @@ Version 0.02
 
 our $VERSION = '0.02';
 
-
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
+Quite unfortunately, UPS doesn't provide test accounts, so to barely
+test this module you need an account key, username, password and
+usually also the UPS account number.
 
     use Shipping::UPS::Tiny;
-
-    my $foo = Shipping::UPS::Tiny->new();
-    ...
+    
+    my $ups = Shipping::UPS::Tiny->new(username => 'pippo',
+                                       password => 'pazzW0rd',
+                                       account_key => '123412341234',
+                                       schema_dir => 'path/to/dir',
+                                       ups_account => '12341234',
+                                      );
+    $ups->from({
+                name => "John Doe",
+                address => "Washington road",
+                city => "New York",
+                postal_code => '10001',
+                province => "NY",
+                country => "US",
+               });
+        
+    $ups->to({
+              name => 'Big Jim',
+              address => 'rue de Fantasy',
+              city => 'Paris',
+              postal_code =>  '75001',
+              country =>  'FR',
+             });
+        
+    $ups->set_package({
+                       length => 4,
+                       width => 4,
+                       height => 4,
+                       weight => 0.1,
+                       cm_kg => 0,
+                      });
+    
+    # set some options
+    $ups->service('07');
+    $ups->reference_number("F322179");
+    $ups->address_validation(0);
+    $ups->negotiated_rates(1);
+    
+    my $res =  $ups->ship("Test");
+    if ($res->is_success) {
+        my $targetdir = catdir(t => "labels-$$");
+        warn "Saving labels in $targetdir";
+        if (my $alert = $res->alert) {
+            warn $alert;
+        }
+        $res->save_labels($targetdir);
+    }
+    else {
+        die $res->is_fault;
+    }
+    
 
 =head1 ACCESSORS
 
