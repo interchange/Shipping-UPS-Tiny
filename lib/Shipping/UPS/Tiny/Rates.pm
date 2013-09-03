@@ -242,11 +242,8 @@ The main method.
 sub rates {
     my $self = shift;
     my $request = $self->_build_hash;
-    $self->_set_debug_hash_request($request);
-    my ($response, $trace) = $self->soap('ProcessRate')->($request, 'UTF-8');
+    my $response = $self->soap(ProcessRate => $request);
 
-    $self->_set_debug_trace($trace);
-    $self->_set_debug_hash_response($response);
     if ($response->{Fault}) {
         return;
     }

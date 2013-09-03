@@ -267,7 +267,8 @@ The XML::Compile::SOAP client (internal)
 has '_soap_obj' => (is => 'rwp');
 
 sub soap {
-    my ($self, $op) = @_;
+    my ($self, $op, $request) = @_;
+    die "Missing operation" unless $op;
     unless ($self->_soap_obj) {
         my $wsdl = XML::Compile::WSDL11->new($self->wsdlfile);
         my @schemas = 
@@ -276,7 +277,20 @@ sub soap {
         my $client = $operation->compileClient(endpoint => $self->endpoint);
         $self->_set__soap_obj($client);
     }
-    return $self->_soap_obj;
+
+
+    # if there is a request, do it and return the result.
+    if ($request) {
+        $self->_set_debug_hash_request($request);
+        my ($response, $trace) = $self->_soap_obj->($request, 'UTF-8');
+        $self->_set_debug_trace($trace);
+        $self->_set_debug_hash_response($response);
+        return $response;
+    }
+    else {
+        # if no request, just return the compiled object.
+        return $self->_soap_obj;
+    };
 }
 
 

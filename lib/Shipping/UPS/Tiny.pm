@@ -232,13 +232,8 @@ sub ship {
         $self->_description($desc)
     };
     my $request = $self->_build_hash;
-
-    $self->_set_debug_hash_request($request);
-    my ($response, $trace) = $self->soap('ProcessShipment')->($request, 'UTF-8');
-
-    $self->_set_debug_trace($trace);
-    $self->_set_debug_hash_response($response);
-    return Shipping::UPS::Tiny::ShipmentResponse->new(raw_response => $response);
+    my $res = $self->soap(ProcessShipment => $request);
+    return Shipping::UPS::Tiny::ShipmentResponse->new(raw_response => $res);
 }
 
 has _description => (is => 'rw',
