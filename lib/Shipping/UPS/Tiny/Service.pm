@@ -97,4 +97,17 @@ sub list_services {
     return { %services };
 }
 
+=item service_name
+
+Return the string with the service's name description for the service
+code provided in the constructor.
+
+=cut
+
+sub service_name {
+    my $self = shift;
+    return $services{$self->service_code};
+}
+
+
 1;
