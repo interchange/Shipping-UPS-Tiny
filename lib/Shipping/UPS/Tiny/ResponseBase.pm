@@ -3,7 +3,10 @@ package Shipping::UPS::Tiny::ResponseBase;
 use 5.010000;
 use strict;
 use warnings FATAL => 'all';
+
 use Moo;
+
+use Data::Dumper;
 
 =head1 NAME
 
@@ -61,7 +64,8 @@ sub _trigger_raw_response {
 
     if ((exists $raw->{Fault}) or
         (exists $raw->{Body} and exists $raw->{Body}->{Fault}) or
-        (exists $raw->{ShippingError})) {
+        (exists $raw->{ShippingError}) or
+        (exists $raw->{RateError})) {
         $self->_store_error_details;
     }
 
@@ -72,11 +76,13 @@ sub _trigger_raw_response {
         $self->_response($raw->{Response});
     }
 
-    if (exists $raw->{Body} and exists $raw->{Body}->{ShipmentResults}) {
-        $self->_result($raw->{Body}->{ShipmentResults});
-    }
-    elsif (exists $raw->{ShipmentResults}) {
-        $self->_result($raw->{ShipmentResults});
+    foreach my $k (qw/ShipmentResults RatedShipment/) {
+        if (exists $raw->{Body} and exists $raw->{Body}->{$k}) {
+            $self->_result($raw->{Body}->{$k});
+        }
+        elsif (exists $raw->{$k}) {
+            $self->_result($raw->{$k});
+        }
     }
 }
 
@@ -125,17 +131,26 @@ sub _store_error_details {
     my $self = shift;
     my $raw = $self->raw_response;
     my $error;
+
     if (exists $raw->{ShipmentError}) {
         $error = $raw->{ShipmentError}->{ErrorDetail};
     }
+    elsif (exists $raw->{RateError}) {
+        $error = $raw->{RateError}->{ErrorDetail};
+    }
+
+    # the following two cases used to work, but not anymore, so we
+    # have to catch it before or die.
     elsif (exists $raw->{Fault}->{detail}->{Errors} and
         exists $raw->{Fault}->{detail}->{Errors}->{ErrorDetail}) {
         $error = $raw->{Fault}->{details}->{Errors}->{ErrorDetail};
     }
     elsif (exists $raw->{Body} and
-           exists $raw->{Body}->{Fault}->{details}->{Errors} and
-           exists $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail}) {
-        $error = $raw->{Body}->{Fault}->{details}->{Errors}->{ErrorDetail};
+           exists $raw->{Body}->{Fault} and
+           exists $raw->{Body}->{Fault}->{detail} and
+           exists $raw->{Body}->{Fault}->{detail}->{Errors} and
+           exists $raw->{Body}->{Fault}->{detail}->{Errors}->{ErrorDetail}) {
+        $error = $raw->{Body}->{Fault}->{detail}->{Errors}->{ErrorDetail};
     }
     unless ($error) {
         die "Unable to handle " . Dumper($raw);

@@ -7,7 +7,7 @@ use Data::Dumper;
 use Test::More;
 use MIME::Base64 qw/decode_base64/;
 
-plan tests => 11;
+plan tests => 20;
 
 my $conffile = catfile(t => 'rates.yml');
 
@@ -66,5 +66,28 @@ ok $rates->is_success, "Success!";
 ok $rates->alert, "Alert found! " . $rates->alert;
 ok !$rates->is_fault, "No fault";
 ok $rates->raw_response, "Found raw response";
+# print Dumper($rates->_result);
+ok $rates->_result, "Found the result";
+# print Dumper($rates->_response);
+ok $rates->_response, "Found the response";
+# print Dumper($rates->raw_response);
+my @rates = $rates->list_rates;
+ok(scalar(@rates), "found rates");
+my $cheaper = $rates[0];
+foreach (qw/currency charge name code/) {
+    ok ($cheaper->{$_}, "found $_: " . $cheaper->{$_});
+}
+diag "Testing the error";
 
+$ups->set_package({
+                   length => 4,
+                   width => 4,
+                   height => 4,
+                   weight => 0.1,
+                   cm_kg => 1,
+                  });
 
+$rates = $ups->rates;
+# print Dumper($rates->raw_response);
+ok($rates->is_fault, "Got fault: " . $rates->is_fault);
+ok(!$rates->list_rates, "No rates available");
