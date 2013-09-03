@@ -10,6 +10,22 @@ use Moo;
 
 Shipping::UPS::Tiny::Package - package class
 
+=head1 SYNOPSIS
+
+This class is used internally by other classes to output the hashref
+for the SOAP requests.
+
+use Shipping::UPS::Tiny::Service;
+
+my $service = Shipping::UPS::Tiny::Service->new(service_code => 11);
+
+my $hashref = $service->as_hash;
+# { Code => 11, Description => "UPS Standard" } 
+
+
+my $name = $service->service_name;
+# "UPS Standard"
+
 =head1 ACCESSORS
 
 =over 4
@@ -77,11 +93,9 @@ Produce a comformant hash to feed the SOAP request.
 
 sub as_hash {
     my $self = shift;
-    my $code = $self->service_code;
-    my $desc = $services{$code};
     return {
-            Code => $code,
-            Description => $desc,
+            Code => $self->service_code,
+            Description => $self->service_name,
            };
 }
 
