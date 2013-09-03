@@ -49,7 +49,7 @@ ok($res->is_success, "Success!");
 ok(!$res->is_fault, "No fault");
 
 ok((index($ups->debug_trace->request->content,
-         '</ship:NegotiatedRatesIndicator></ship:ShipmentRatingOptions>', "Indicator found") >= 0), "indicator found") ;
+         '</ship:NegotiatedRatesIndicator></ship:ShipmentRatingOptions>') >= 0), "indicator found") ;
 
 diag Dumper();
 
