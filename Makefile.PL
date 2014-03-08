@@ -22,6 +22,7 @@ WriteMakefile(
                   'Moo' => 0,
                   'Date::Parse' => 0,
                   'XML::Compile::Schema' => 0,
+                  'XML::Compile::WSDL11' => 0,
                   'XML::LibXML' => 0,
                   'XML::LibXML::Simple' => 0,
                   'LWP::UserAgent' => 0,
